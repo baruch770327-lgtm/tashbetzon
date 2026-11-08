@@ -104,6 +104,15 @@ export class Game {
     }
   }
 
+  /** Clears one cell (unless revealed) and puts the cursor on it, keeping the direction when possible. */
+  clearAt(row, col) {
+    const cell = this.#cell(row, col);
+    if (!cell || cell.block) return;
+    if (!this.revealed.has(key(row, col))) this.fills[row][col] = '';
+    const dir = cell[this.cursor.dir] !== null ? this.cursor.dir : (this.cursor.dir === 'across' ? 'down' : 'across');
+    this.cursor = { row, col, dir };
+  }
+
   goToEntry(index) {
     const e = this.puzzle.entries[index];
     if (!e) return;

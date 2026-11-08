@@ -212,3 +212,14 @@ test('solvedCells contains only cells of fully solved entries', () => {
   g.type('ו'); g.type('מ');
   assert.deepEqual([...g.solvedCells()].sort(), ['0,0', '0,1', '0,2', '0,3']);
 });
+
+test('clearAt empties one cell and moves the cursor there, but never a revealed cell', () => {
+  const g = newGame();
+  typeAll(g, 'שלו');
+  g.clearAt(0, 1);
+  assert.equal(g.fills[0][1], '');
+  assert.deepEqual(g.cursor, { row: 0, col: 1, dir: 'across' });
+  g.select(0, 3); g.revealLetter();
+  g.clearAt(0, 3);
+  assert.equal(g.fills[0][3], 'מ');
+});

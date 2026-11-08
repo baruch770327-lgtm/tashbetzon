@@ -2,6 +2,7 @@
 import { h } from '../dom.js';
 import { loadPuzzle } from '../../core/puzzle.js';
 import { Game } from '../../core/game.js';
+import { normalizeLetter } from '../../core/hebrew.js';
 import { HINT_COST } from '../../core/scoring.js';
 import { spendCoins, recordCompletion } from '../../core/progress.js';
 import { clampTransform, ensureVisible } from '../viewport.js';
@@ -161,14 +162,23 @@ export function render(ctx, { id }) {
   }
 
   // ---- input ----
+  /** Types one letter; returns the "row,col" it went into (null if ignored) for the phone-keyboard tracker. */
   function typeLetter(ch) {
-    if (finished) return;
+    if (finished || !normalizeLetter(ch)) return null;
     const { row, col } = game.cursor;
     const index = game.currentEntry().index;
     const wasSolved = game.isEntrySolved(index);
     game.type(ch);
     wrong.delete(`${row},${col}`);
     advanceIfSolved(index, wasSolved);
+    afterChange();
+    return `${row},${col}`;
+  }
+  function eraseAt(token) {
+    if (finished) return;
+    const [r, c] = token.split(',').map(Number);
+    game.clearAt(r, c);
+    wrong.delete(token);
     afterChange();
   }
   function erase() {
@@ -213,6 +223,7 @@ export function render(ctx, { id }) {
   const phoneKeyboard = usePhoneKeyboard ? createNativeInput({
     onLetter: typeLetter,
     onErase: erase,
+    onEraseAt: eraseAt,
     onNext: goNext,
     onLatin: () => say('המקלדת באנגלית: החלף אותה לעברית 🌐'),
   }) : null;
@@ -305,6 +316,7 @@ export function render(ctx, { id }) {
     detachGestures();
     keyboard?.detach();
     closeKeyboard();
+    phoneKeyboard?.detach();
     document.removeEventListener('visibilitychange', onVisibility);
     window.removeEventListener('pagehide', saveNow);
   };

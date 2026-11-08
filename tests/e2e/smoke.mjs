@@ -91,6 +91,17 @@ try {
   if (await nativeFocused(page)) fail('⌨️ did not close the keyboard');
   await page.click('[data-action=keyboard]');
   if (!(await nativeFocused(page))) fail('⌨️ did not open the keyboard');
+  // The phone shrinks the app while its keyboard is up: the minimap must not cover the board then.
+  await page.setViewportSize({ width: 390, height: 480 });
+  await page.waitForTimeout(250);
+  if (!(await page.$eval('.minimap', (m) => m.hidden))) fail('minimap covers the board while the keyboard is open');
+  // Android Back hides the keyboard but leaves the field focused; one tap on ⌨️ must bring it back.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(250);
+  await page.click('[data-action=keyboard]');
+  if (!(await nativeFocused(page))) fail('⌨️ needed a second tap after Back hid the keyboard');
+  // Enter must stay a key press (enterkeyhint "next" can make Android move focus away instead).
+  if ((await page.getAttribute('[data-native-input]', 'enterkeyhint')) === 'next') fail('enterkeyhint "next" may move focus away on Android');
 
   // Zoom toggle changes the board scale and back.
   const scaleOf = () => page.$eval('.board', (b) => b.style.transform);

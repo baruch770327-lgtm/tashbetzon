@@ -30,3 +30,54 @@ test('pasting several letters adds them all', () => {
 test('clearing everything erases what was there', () => {
   assert.deepEqual(diffInput(`${SENTINEL}אב`, ''), { erase: SENTINEL.length + 2, added: '' });
 });
+
+import { createInputTracker } from '../../app/js/ui/native-input.js';
+
+function fakeBoard() {
+  const log = [];
+  let n = 0;
+  return {
+    log,
+    handlers: {
+      onLetter: (ch) => { log.push(`type ${ch}`); return /[א-ת]/.test(ch) ? `cell${n++}` : null; },
+      onErase: () => log.push('erase'),
+      onEraseAt: (tok) => log.push(`clear ${tok}`),
+      onNext: () => log.push('next'),
+      onLatin: () => log.push('latin'),
+    },
+  };
+}
+
+test('an IME rewriting its composition clears exactly the cells it wrote', () => {
+  const b = fakeBoard();
+  const t = createInputTracker(b.handlers);
+  t.apply(SENTINEL, `${SENTINEL}ש`, true);
+  t.apply(`${SENTINEL}ש`, `${SENTINEL}של`, true);
+  t.apply(`${SENTINEL}של`, `${SENTINEL}תל`, true);
+  assert.deepEqual(b.log, ['type ש', 'type ל', 'clear cell1', 'clear cell0', 'type ת', 'type ל']);
+});
+
+test('erasing composed Latin letters never touches the board', () => {
+  const b = fakeBoard();
+  const t = createInputTracker(b.handlers);
+  t.apply(SENTINEL, `${SENTINEL}ab`, true);
+  t.apply(`${SENTINEL}ab`, `${SENTINEL}a`, true);
+  assert.deepEqual(b.log, ['latin', 'latin']);
+});
+
+test('outside a composition Backspace erases normally', () => {
+  const b = fakeBoard();
+  const t = createInputTracker(b.handlers);
+  t.apply(SENTINEL, `${SENTINEL}ש`, false);
+  t.apply(SENTINEL, SENTINEL.slice(1), false);
+  assert.deepEqual(b.log, ['type ש', 'erase']);
+});
+
+test('a finished composition is forgotten', () => {
+  const b = fakeBoard();
+  const t = createInputTracker(b.handlers);
+  t.apply(SENTINEL, `${SENTINEL}ש`, true);
+  t.end();
+  t.apply(SENTINEL, SENTINEL.slice(1), false);
+  assert.deepEqual(b.log, ['type ש', 'erase']);
+});

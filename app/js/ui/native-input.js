@@ -14,14 +14,53 @@ export function diffInput(prev, next) {
 
 const LATIN = /[A-Za-z]/;
 
-export function createNativeInput({ onLetter, onErase, onNext, onLatin }) {
+/**
+ * Turns field changes into board actions. During a keyboard composition (word suggestions), each typed
+ * character's board cell is remembered, so when the keyboard rewrites or deletes composed text only
+ * those cells are cleared — never letters elsewhere on the board.
+ * onLetter(ch) returns a token for the cell it wrote (or null if nothing was written).
+ */
+export function createInputTracker({ onLetter, onErase, onEraseAt, onNext, onLatin }) {
+  const written = [];
+  return {
+    apply(prev, next, composing) {
+      const { erase, added } = diffInput(prev, next);
+      for (let k = 0; k < erase; k++) {
+        if (written.length) {
+          const tok = written.pop();
+          if (tok !== null) onEraseAt(tok);
+        } else {
+          onErase();
+        }
+      }
+      for (const ch of added) {
+        if (ch === '\n') { onNext(1); written.push(null); } else if (LATIN.test(ch)) { onLatin?.(); written.push(null); } else written.push(onLetter(ch) ?? null);
+      }
+      if (!composing) written.length = 0;
+    },
+    end() { written.length = 0; },
+  };
+}
+
+export function createNativeInput({ onLetter, onErase, onEraseAt, onNext, onLatin }) {
   const el = h('input', {
     class: 'native-input', type: 'text', inputmode: 'text', lang: 'he', dir: 'rtl',
     autocomplete: 'off', autocorrect: 'off', autocapitalize: 'off', spellcheck: 'false',
-    enterkeyhint: 'next', 'aria-label': 'הקלדת אותיות לתשבץ', dataset: { nativeInput: '' },
+    'aria-label': 'הקלדת אותיות לתשבץ', dataset: { nativeInput: '' },
   });
   let last = SENTINEL;
   let composing = false;
+  // Whether the phone keyboard is showing. Focus alone is not enough: Android Back hides the keyboard
+  // but leaves the field focused. The app grows back to full height when that happens.
+  let shown = false;
+  let fullHeight = window.innerHeight;
+  const onResize = () => {
+    const h = window.innerHeight;
+    if (h >= fullHeight * 0.95) shown = false; // back to full height: keyboard gone
+    fullHeight = Math.max(fullHeight, h);
+  };
+  window.addEventListener('resize', onResize);
+  const tracker = createInputTracker({ onLetter, onErase, onEraseAt, onNext, onLatin });
 
   const reset = () => {
     el.value = SENTINEL;
@@ -30,19 +69,14 @@ export function createNativeInput({ onLetter, onErase, onNext, onLatin }) {
   };
 
   function apply() {
-    const { erase, added } = diffInput(last, el.value);
+    const prev = last;
     last = el.value;
-    for (let k = 0; k < erase; k++) onErase();
-    for (const ch of added) {
-      if (ch === '\n') onNext(1);
-      else if (LATIN.test(ch)) onLatin?.();
-      else onLetter(ch);
-    }
+    tracker.apply(prev, el.value, composing);
     if (!composing) reset();
   }
 
   el.addEventListener('compositionstart', () => { composing = true; });
-  el.addEventListener('compositionend', () => { composing = false; apply(); });
+  el.addEventListener('compositionend', () => { composing = false; apply(); tracker.end(); });
   el.addEventListener('input', apply);
   el.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); onNext(e.shiftKey ? -1 : 1); }
@@ -58,12 +92,15 @@ export function createNativeInput({ onLetter, onErase, onNext, onLatin }) {
     open() {
       if (document.activeElement === el) el.blur(); // re-focusing makes the phone show its keyboard again
       el.focus({ preventScroll: true });
+      shown = true;
       try { globalThis.AndroidBridge?.showKeyboard?.(); } catch { /* older app shell */ }
     },
     close() {
+      shown = false;
       el.blur();
       try { globalThis.AndroidBridge?.hideKeyboard?.(); } catch { /* older app shell */ }
     },
-    isOpen: () => document.activeElement === el,
+    isOpen: () => shown && document.activeElement === el,
+    detach: () => window.removeEventListener('resize', onResize),
   };
 }
