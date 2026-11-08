@@ -195,6 +195,12 @@ h2 { font-size: 22px; font-weight: 700; }
 .clue-nav { width: 26px; font-size: 26px; color: var(--muted); text-align: center; flex: none; }
 
 .hints { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.hints.four { grid-template-columns: repeat(4, 1fr); }
+/* The phone keyboard's target: invisible but focusable (16px avoids iOS zoom-on-focus). */
+.native-input {
+  position: fixed; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0;
+  font-size: 16px; caret-color: transparent; background: transparent; color: transparent; pointer-events: none;
+}
 .hint {
   background: var(--card); border-radius: 14px; padding: 7px 4px; text-align: center; font-size: 13px; color: var(--muted);
   display: flex; flex-direction: column; align-items: center; gap: 1px;

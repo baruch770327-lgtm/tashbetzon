@@ -3,17 +3,20 @@ import { h } from '../dom.js';
 import { defaultProgress } from '../../core/progress.js';
 import { tabBar } from '../common.js';
 
+// [key, label, help, value when on, value when off]
 const TOGGLES = [
-  ['sound', '🔊 השמעה', 'השמעת המילים באנגלית בלחיצה על 🔊'],
-  ['vibrate', '📳 רטט', 'רטט קצר כשיש טעות וכשמסיימים שלב'],
-  ['autoCheck', '✅ בדיקה אוטומטית', 'אות שגויה נצבעת באדום מיד אחרי ההקלדה'],
+  ['keyboard', '⌨️ מקלדת הטלפון', 'כבוי: מקלדת עברית מובנית במשחק במקום המקלדת של הטלפון', 'phone', 'game'],
+  ['sound', '🔊 השמעה', 'השמעת המילים באנגלית בלחיצה על 🔊', true, false],
+  ['vibrate', '📳 רטט', 'רטט קצר כשיש טעות וכשמסיימים שלב', true, false],
+  ['autoCheck', '✅ בדיקה אוטומטית', 'אות שגויה נצבעת באדום מיד אחרי ההקלדה', true, false],
 ];
 const CONFIRM_MS = 4000;
 
 export function render(ctx) {
   let confirmTimer = null;
   const switches = [];
-  const syncSwitches = () => switches.forEach(([key, sw]) => sw.setAttribute('aria-checked', String(ctx.progress.settings[key])));
+  const isOn = (key) => ctx.progress.settings[key] === TOGGLES.find((x) => x[0] === key)[3];
+  const syncSwitches = () => switches.forEach(([key, sw]) => sw.setAttribute('aria-checked', String(isOn(key))));
   const resetBtn = h('button', { class: 'btn btn-ghost danger', dataset: { action: 'reset' } }, 'איפוס התקדמות');
   const status = h('p', { class: 'muted small center', role: 'status' });
   resetBtn.addEventListener('click', () => {
@@ -39,14 +42,14 @@ export function render(ctx) {
 
   return h('section', { class: 'settings' },
     h('header', { class: 'topbar' }, h('h2', {}, 'הגדרות')),
-    h('div', { class: 'card settings-list' }, TOGGLES.map(([key, label, help]) => {
+    h('div', { class: 'card settings-list' }, TOGGLES.map(([key, label, help, onValue, offValue]) => {
       const sw = h('button', {
-        class: 'switch', role: 'switch', 'aria-checked': String(ctx.progress.settings[key]), dataset: { setting: key }, 'aria-label': label,
+        class: 'switch', role: 'switch', 'aria-checked': String(isOn(key)), dataset: { setting: key }, 'aria-label': label,
       }, h('i'));
       switches.push([key, sw]);
       sw.addEventListener('click', () => {
-        ctx.progress.settings[key] = !ctx.progress.settings[key];
-        sw.setAttribute('aria-checked', String(ctx.progress.settings[key]));
+        ctx.progress.settings[key] = isOn(key) ? offValue : onValue;
+        sw.setAttribute('aria-checked', String(isOn(key)));
         ctx.save();
       });
       return h('div', { class: 'setting' }, h('div', {}, h('div', { class: 'card-title' }, label), h('div', { class: 'muted small' }, help)), sw);
@@ -54,7 +57,7 @@ export function render(ctx) {
     resetBtn,
     status,
     h('div', { class: 'card about muted small' },
-      h('p', {}, 'תשבצון · גרסה 0.1.0'),
+      h('p', {}, 'תשבצון · גרסה 0.1.1'),
       h('p', {}, 'המשחק עובד בלי אינטרנט, בלי פרסומות ובלי איסוף מידע. ההתקדמות נשמרת רק בטלפון שלך.'),
       h('p', {}, 'התרגומים נכתבו בעזרת בינה מלאכותית ויכולות להיות בהם טעויות.'),
       h('p', {}, 'גופן Rubik, ברישיון SIL Open Font License.')),

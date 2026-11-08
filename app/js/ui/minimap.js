@@ -20,7 +20,7 @@ export function createMinimap(game) {
     el,
     /** entryRect: current word in unscaled content coordinates; the map moves away from it. */
     update(t, d, entryRect) {
-      el.hidden = t.scale < 1.2;
+      el.hidden = d.contentW * t.scale <= d.viewW + 1 && d.contentH * t.scale <= d.viewH + 1; // whole board visible
       if (el.hidden) return;
       if (entryRect) {
         const e = { left: t.x + entryRect.x * t.scale, top: t.y + entryRect.y * t.scale };

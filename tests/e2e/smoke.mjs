@@ -1,4 +1,4 @@
-// End-to-end smoke test: plays stage A1-01 by tapping cells and keys like a person would.
+// End-to-end smoke test: plays stage A1-01 by tapping cells and typing on the (phone) keyboard like a person would.
 // Run: npm run e2e   (uses the preinstalled Playwright + Chromium; screenshots → test-results/screens/)
 import { readFileSync, mkdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -16,8 +16,10 @@ const puzzle = loadPuzzle(level.puzzles[0]);
 
 const errors = [];
 const typed = { finals: 0 };
-/** Solve A1-01 by tapping cells and keys. lastThenClose: tap ✕ right after the final key. */
-async function solve(page, { onEntry = async () => {}, lastThenClose = false } = {}) {
+const nativeFocused = (page) => page.evaluate(() => document.activeElement?.matches('[data-native-input]') ?? false);
+
+/** Solve A1-01 by tapping cells and typing. keys: 'phone' types into the phone keyboard, 'game' taps the built-in keys. */
+async function solve(page, { onEntry = async () => {}, lastThenClose = false, keys = 'phone' } = {}) {
   const filled = new Set();
   const targets = [];
   for (const entry of puzzle.entries) {
@@ -34,7 +36,8 @@ async function solve(page, { onEntry = async () => {}, lastThenClose = false } =
       const cell = puzzle.cells[r][c];
       const key = displayLetter(cell.answer, cell.finalForm);
       if (key !== cell.answer) typed.finals++;
-      await page.click(`[data-key="${key}"]`);
+      if (keys === 'game') await page.click(`[data-key="${key}"]`);
+      else await page.keyboard.type(key);
       filled.add(`${r},${c}`);
       if (lastThenClose && filled.size === total) {
         await page.click('[data-action=close]');
@@ -66,6 +69,26 @@ try {
   await page.click('[data-action=play]');
   await page.waitForSelector('[data-screen=game] [data-cell]');
 
+  // The phone keyboard opens when the stage opens, and there are no built-in keys.
+  if (!(await nativeFocused(page))) fail('phone keyboard did not open on entering the stage');
+  if (await page.$('[data-key]')) fail('built-in keyboard shown although the phone keyboard is selected');
+  // Typing then Backspace leaves the square empty.
+  await page.click('[data-cell="0,0"]');
+  await page.keyboard.type('א');
+  await page.keyboard.press('Backspace');
+  if ((await page.textContent('[data-cell="0,0"] .letter')) !== '') fail('Backspace did not clear the square');
+  // English letters are not typed; the player is told to switch the keyboard to Hebrew.
+  await page.keyboard.type('a');
+  await page.waitForSelector('.toast:not([hidden])', { timeout: 1000 });
+  if (!(await page.textContent('.toast')).includes('לעברית')) fail('no hint to switch the keyboard to Hebrew');
+  // Hint buttons do not close the keyboard; the ⌨️ button toggles it.
+  await page.click('[data-action=check]');
+  if (!(await nativeFocused(page))) fail('a hint button closed the phone keyboard');
+  await page.click('[data-action=keyboard]');
+  if (await nativeFocused(page)) fail('⌨️ did not close the keyboard');
+  await page.click('[data-action=keyboard]');
+  if (!(await nativeFocused(page))) fail('⌨️ did not open the keyboard');
+
   // Zoom toggle changes the board scale and back.
   const scaleOf = () => page.$eval('.board', (b) => b.style.transform);
   const before = await scaleOf();
@@ -85,17 +108,19 @@ try {
   await page.click('[data-action=zoom]');
   if (!(await scaleOf()).includes('scale(1)')) fail('zoom button did not reset');
 
-  // The on-screen ⏎ key moves to the next clue.
+  // The keyboard's Enter key moves to the next clue.
   const badge = () => page.textContent('.clue-badge');
+  await page.click('[data-cell="0,0"]');
   const firstBadge = await badge();
-  await page.click('[data-key=next]');
-  if ((await badge()) === firstBadge) fail('⏎ key did not move to the next clue');
+  await page.keyboard.press('Enter');
+  if ((await badge()) === firstBadge) fail('Enter did not move to the next clue');
 
   await solve(page, { onEntry: async (n) => {
     if (n === 12) {
       await shot('3-game');
       await page.click('[data-action=clues]');
       await page.waitForSelector('.sheet-backdrop:not([hidden])');
+      if (await nativeFocused(page)) fail('the clue list opened over the phone keyboard');
       await shot('4-clues');
       // Android back with the clue list open closes the list and stays in the puzzle.
       if (!(await page.evaluate(() => window.tashbetzonBack()))) fail('back with clue list open exited');
@@ -104,6 +129,7 @@ try {
     }
   } });
   await page.waitForSelector('[data-screen=complete]', { timeout: 5000 });
+  if (await nativeFocused(page)) fail('the phone keyboard stayed open after the stage was solved');
   const stars = await page.$$eval('.star.on', (s) => s.length);
   if (stars !== 3) fail(`expected 3 stars, got ${stars}`);
   await page.waitForTimeout(1000); // let the star animation finish
@@ -136,11 +162,14 @@ try {
   const autoCheck = await page.getAttribute('[data-setting=autoCheck]', 'aria-checked');
   if (autoCheck !== 'false') fail(`auto-check switch shows ${autoCheck} after reset`);
 
+  // The built-in game keyboard (settings fallback) still works.
+  await page.click('[data-setting=keyboard]');
+  if ((await page.getAttribute('[data-setting=keyboard]', 'aria-checked')) !== 'false') fail('keyboard switch did not turn off');
   // Closing the puzzle right after the last letter must not leave the complete screen as the root.
   await page.click('[data-tab=home]');
   await page.click('[data-action=play]');
-  await page.waitForSelector('[data-screen=game] [data-cell]');
-  await solve(page, { lastThenClose: true });
+  await page.waitForSelector('[data-screen=game] [data-key]');
+  await solve(page, { lastThenClose: true, keys: 'game' });
   await page.waitForTimeout(800);
   const screenNow = await page.getAttribute('[data-screen]', 'data-screen');
   if (screenNow !== 'home') fail(`after fast close the screen is ${screenNow}`);

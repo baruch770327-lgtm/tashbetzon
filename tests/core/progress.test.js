@@ -12,7 +12,7 @@ test('defaults', () => {
   const p = defaultProgress();
   assert.equal(p.version, 1);
   assert.equal(p.coins, 100);
-  assert.deepEqual(p.settings, { sound: true, vibrate: true, autoCheck: false });
+  assert.deepEqual(p.settings, { sound: true, vibrate: true, autoCheck: false, keyboard: 'phone' });
   assert.equal(p.lastPlayed, null);
 });
 
@@ -24,6 +24,7 @@ test('migrate rejects unknown shapes and fills missing fields', () => {
   assert.equal(m.coins, 5);
   assert.equal(m.settings.sound, false);
   assert.equal(m.settings.autoCheck, false);
+  assert.equal(m.settings.keyboard, 'phone', 'old saves get the phone keyboard');
   assert.deepEqual(m.stages, {});
 });
 

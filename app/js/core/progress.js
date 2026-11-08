@@ -10,7 +10,7 @@ export function defaultProgress() {
     stages: {},
     inProgress: {},
     words: {},
-    settings: { sound: true, vibrate: true, autoCheck: false },
+    settings: { sound: true, vibrate: true, autoCheck: false, keyboard: 'phone' }, // keyboard: 'phone' | 'game'
     lastPlayed: null,
   };
 }

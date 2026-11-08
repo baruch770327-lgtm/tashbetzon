@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.net.Uri;
 import android.os.Bundle;
 import android.speech.tts.TextToSpeech;
+import android.view.inputmethod.InputMethodManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -93,6 +94,24 @@ public class MainActivity extends Activity {
 
     /** Called from JavaScript: AndroidBridge.speak("dog"). */
     private class Bridge {
+        /** Shows the phone keyboard for the focused text field (called right after it gets focus). */
+        @JavascriptInterface
+        public void showKeyboard() {
+            runOnUiThread(() -> {
+                webView.requestFocus();
+                InputMethodManager imm = getSystemService(InputMethodManager.class);
+                if (imm != null) imm.showSoftInput(webView, InputMethodManager.SHOW_IMPLICIT);
+            });
+        }
+
+        @JavascriptInterface
+        public void hideKeyboard() {
+            runOnUiThread(() -> {
+                InputMethodManager imm = getSystemService(InputMethodManager.class);
+                if (imm != null) imm.hideSoftInputFromWindow(webView.getWindowToken(), 0);
+            });
+        }
+
         @JavascriptInterface
         public void speak(String text) {
             if (tts != null && ttsReady && text != null) {

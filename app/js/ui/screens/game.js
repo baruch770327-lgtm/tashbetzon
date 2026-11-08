@@ -9,6 +9,7 @@ import { attachGestures } from '../gestures.js';
 import { createBoard } from '../board.js';
 import { createMinimap } from '../minimap.js';
 import { createKeyboard } from '../keyboard.js';
+import { createNativeInput } from '../native-input.js';
 import { createClueBar } from '../clue-bar.js';
 import { createClueList } from '../clue-list.js';
 import { findPuzzle, levelOf } from '../common.js';
@@ -81,13 +82,13 @@ export function render(ctx, { id }) {
     zoomBtn.textContent = t.scale > 1.2 ? '🔍−' : '🔍+';
   };
   const setTransform = (next) => { t = clampTransform(next, dims()); applyTransform(); };
-  const followCursor = () => {
-    if (t.scale > 1.05) setTransform(ensureVisible(t, board.entryRect(game.currentEntry()), dims()));
-  };
+  // Keep the current word on screen (the board can be taller than the space left by the phone keyboard).
+  const followCursor = () => setTransform(ensureVisible(t, board.entryRect(game.currentEntry()), dims()));
   const layout = () => {
     if (!viewport.isConnected || viewport.clientWidth === 0) return;
-    board.layout(Math.min(viewport.clientWidth, viewport.clientHeight));
-    setTransform(t);
+    // The board always fills the width; when the phone keyboard leaves less height, it scrolls instead of shrinking.
+    board.layout(viewport.clientWidth);
+    followCursor();
   };
 
   // ---- feedback ----
@@ -108,11 +109,12 @@ export function render(ctx, { id }) {
 
   const clueBar = createClueBar({
     onSpeak: () => ctx.speak?.(game.currentEntry().en),
-    onPrev: () => { game.nextEntry(-1); refresh(); followCursor(); },
-    onNext: () => { game.nextEntry(1); refresh(); followCursor(); },
-    onOpenList: () => clueList.open(),
+    onPrev: () => goNext(-1),
+    onNext: () => goNext(1),
+    onOpenList: () => openClueList(),
   });
-  const clueList = createClueList(game, { onPick: (i) => { game.goToEntry(i); refresh(); followCursor(); } });
+  const clueList = createClueList(game, { onPick: (i) => { game.goToEntry(i); refresh(); followCursor(); openKeyboard(); } });
+  const openClueList = () => { closeKeyboard(); clueList.open(); };
 
   function refresh() {
     if (ctx.progress.settings.autoCheck) wrong = new Set(game.wrongCells().map(([r, c]) => `${r},${c}`));
@@ -148,6 +150,7 @@ export function render(ctx, { id }) {
     tick();
     finished = true;
     clearTimeout(saveTimer);
+    closeKeyboard();
     const result = recordCompletion(ctx.progress, puzzle, { reveals: game.reveals, elapsedMs: game.elapsedMs, now: Date.now() });
     ctx.progress.lastPlayed = id;
     ctx.save();
@@ -205,17 +208,22 @@ export function render(ctx, { id }) {
     afterChange();
   }
 
-  const keyboard = createKeyboard({
+  const goNext = (delta = 1) => { game.nextEntry(delta); refresh(); followCursor(); };
+  const usePhoneKeyboard = ctx.progress.settings.keyboard !== 'game';
+  const phoneKeyboard = usePhoneKeyboard ? createNativeInput({
     onLetter: typeLetter,
     onErase: erase,
-    onNext: (delta = 1) => { game.nextEntry(delta); refresh(); followCursor(); },
-  });
+    onNext: goNext,
+    onLatin: () => say('המקלדת באנגלית: החלף אותה לעברית 🌐'),
+  }) : null;
+  const keyboard = usePhoneKeyboard ? null : createKeyboard({ onLetter: typeLetter, onErase: erase, onNext: goNext });
+  const openKeyboard = () => { if (!finished) phoneKeyboard?.open(); };
+  const closeKeyboard = () => phoneKeyboard?.close();
 
   const zoomBtn = h('button', {
     class: 'zoom-btn', 'aria-label': 'הגדלה', dataset: { action: 'zoom' },
     onClick: () => {
-      if (t.scale > 1.2) setTransform({ scale: 1, x: 0, y: 0 });
-      else {
+      if (t.scale > 1.2) { setTransform({ scale: 1, x: 0, y: 0 }); followCursor(); } else {
         const r = board.entryRect(game.currentEntry());
         const d = dims();
         setTransform(ensureVisible({ scale: ZOOM_IN_SCALE, x: d.viewW / 2 - (r.x + r.w / 2) * ZOOM_IN_SCALE, y: d.viewH / 2 - (r.y + r.h / 2) * ZOOM_IN_SCALE }, r, d));
@@ -235,6 +243,7 @@ export function render(ctx, { id }) {
       game.select(r, c);
       refresh();
       followCursor();
+      openKeyboard();
     },
   });
 
@@ -244,20 +253,25 @@ export function render(ctx, { id }) {
 
   const el = h('section', { class: 'game' },
     h('header', { class: 'topbar' },
-      h('button', { class: 'icon-btn', 'aria-label': 'סגירה', dataset: { action: 'close' }, onClick: () => { saveNow(); ctx.router.back(); } }, '✕'),
+      h('button', { class: 'icon-btn', 'aria-label': 'סגירה', dataset: { action: 'close' }, onClick: () => { closeKeyboard(); saveNow(); ctx.router.back(); } }, '✕'),
       h('div', { class: 'game-title' },
         h('div', { class: 'card-title' }, h('span', { dir: 'ltr' }, level.id), ` · שלב ${puzzle.stage}`),
         h('div', { class: 'muted small' }, `${world?.emoji ?? ''} ${world?.name ?? ''} · ${puzzle.entries.length} מילים`)),
-      h('button', { class: 'icon-btn', 'aria-label': 'רשימת ההגדרות', dataset: { action: 'clues' }, onClick: () => clueList.open() }, '📋')),
+      h('button', { class: 'icon-btn', 'aria-label': 'רשימת ההגדרות', dataset: { action: 'clues' }, onClick: () => openClueList() }, '📋')),
     h('div', { class: 'row game-progress' },
       h('div', { class: 'bar grow' }, barFill), solvedCount, h('div', { class: 'pill small-pill' }, '🪙 ', coins)),
     viewport,
     clueBar.el,
-    h('div', { class: 'hints' },
+    h('div', { class: `hints${usePhoneKeyboard ? ' four' : ''}` },
       hint('✅', 'בדוק מילה', 0, 'check', checkWord),
       hint('🔤', 'גלה אות', HINT_COST.letter, 'reveal-letter', revealLetter),
-      hint('💡', 'גלה מילה', HINT_COST.word, 'reveal-word', revealWord)),
-    keyboard.el,
+      hint('💡', 'גלה מילה', HINT_COST.word, 'reveal-word', revealWord),
+      usePhoneKeyboard && h('button', {
+        class: 'hint', dataset: { action: 'keyboard' }, 'aria-label': 'פתיחה או סגירה של המקלדת',
+        onClick: () => (phoneKeyboard.isOpen() ? closeKeyboard() : openKeyboard()),
+      }, h('span', { class: 'hint-icon', 'aria-hidden': 'true' }, '⌨️'), 'מקלדת', h('span', { class: 'hint-cost free' }, ' '))),
+    keyboard?.el,
+    phoneKeyboard?.el,
     toast,
     clueList.el);
 
@@ -267,11 +281,18 @@ export function render(ctx, { id }) {
     return true;
   };
 
+  // Tapping the game's own buttons must not take focus away from the phone keyboard (it would close it).
+  // ✕ and 📋 close it on purpose in their handlers.
+  const keepKeyboard = (e) => { if (usePhoneKeyboard && e.target.closest?.('button')) e.preventDefault(); };
+  el.addEventListener('pointerdown', keepKeyboard);
+  el.addEventListener('mousedown', keepKeyboard);
+
   const resizeObserver = new ResizeObserver(layout);
   el.addEventListener('screen:mounted', () => {
     resizeObserver.observe(viewport);
     layout();
     refresh();
+    openKeyboard(); // the player came here to type
   });
   document.addEventListener('visibilitychange', onVisibility);
   window.addEventListener('pagehide', saveNow);
@@ -282,7 +303,8 @@ export function render(ctx, { id }) {
     clearTimeout(toastTimer);
     resizeObserver.disconnect();
     detachGestures();
-    keyboard.detach();
+    keyboard?.detach();
+    closeKeyboard();
     document.removeEventListener('visibilitychange', onVisibility);
     window.removeEventListener('pagehide', saveNow);
   };

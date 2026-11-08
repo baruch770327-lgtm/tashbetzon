@@ -18,6 +18,7 @@ export function attachGestures(el, { getTransform, setTransform, dims, onTap }) 
 
   function down(e) {
     if (e.target.closest?.('button')) return; // overlay buttons (zoom) handle their own clicks
+    e.preventDefault(); // keeps focus (and the phone keyboard) where it is while tapping or panning the board
     try { el.setPointerCapture(e.pointerId); } catch { /* synthetic or already-released pointer */ }
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pts.size === 1) {
