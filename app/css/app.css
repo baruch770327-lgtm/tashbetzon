@@ -36,11 +36,11 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 button:disabled { cursor: default; }
 button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
-#app { max-width: 480px; margin: 0 auto; min-height: 100dvh; }
+#app { max-width: 480px; margin: 0 auto; min-height: 100vh; min-height: 100dvh; }
 .boot { display: grid; place-items: center; min-height: 100dvh; font-size: 64px; }
 
 .screen {
-  min-height: 100dvh; display: flex; flex-direction: column; gap: 14px;
+  min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; gap: 14px;
   padding: calc(var(--safe-top) + 14px) 16px calc(var(--safe-bottom) + 96px);
 }
 
@@ -137,7 +137,7 @@ h2 { font-size: 22px; font-weight: 700; }
 }
 
 /* Game screen: everything fits one phone screen, no page scroll. */
-.screen.game { height: 100dvh; min-height: 0; overflow: hidden; gap: 8px; padding-bottom: calc(var(--safe-bottom) + 8px); }
+.screen.game { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; gap: 8px; padding-bottom: calc(var(--safe-bottom) + 8px); }
 .icon-btn { width: 44px; height: 44px; border-radius: 14px; background: var(--card); display: grid; place-items: center; font-size: 18px; flex: none; text-align: center; }
 .game-title { text-align: center; flex: 1; min-width: 0; }
 .game-title .card-title { font-size: 17px; }

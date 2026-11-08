@@ -1,0 +1,44 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'app.tashbetzon'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'app.tashbetzon'
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName '0.1.0'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    sourceSets {
+        main {
+            // The web app (../../app) is copied here at build time and served from assets/www.
+            assets.srcDir(layout.buildDirectory.dir('generated/webassets'))
+        }
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "tashbetzon-${variant.versionName}-${variant.buildType.name}.apk"
+        }
+    }
+}
+
+def copyWebApp = tasks.register('copyWebApp', Sync) {
+    from(rootProject.file('../app'))
+    into(layout.buildDirectory.dir('generated/webassets/www'))
+    exclude '**/.DS_Store'
+}
+
+tasks.named('preBuild') {
+    dependsOn copyWebApp
+}
