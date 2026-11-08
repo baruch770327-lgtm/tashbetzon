@@ -1,0 +1,17 @@
+[
+  {
+    "id": "A1", "name": "מתחילים", "size": 11, "available": true, "file": "data/puzzles/a1.json",
+    "worlds": [
+      { "n": 1, "name": "צעדים ראשונים", "emoji": "🌱", "topics": ["basics", "numbers", "colors", "family"] },
+      { "n": 2, "name": "הבית שלי", "emoji": "🏠", "topics": ["home", "objects", "time"] },
+      { "n": 3, "name": "אוכל ושתייה", "emoji": "🍎", "topics": ["food"] },
+      { "n": 4, "name": "בעלי חיים וטבע", "emoji": "🦁", "topics": ["animals", "nature"] },
+      { "n": 5, "name": "אני והעיר", "emoji": "🏙️", "topics": ["body", "clothes", "city", "verbs", "adjectives"] }
+    ]
+  },
+  { "id": "A2", "name": "בסיסי", "size": 11, "available": false },
+  { "id": "B1", "name": "בינוני", "size": 13, "available": false },
+  { "id": "B2", "name": "בינוני-מתקדם", "size": 13, "available": false },
+  { "id": "C1", "name": "מתקדם", "size": 15, "available": false },
+  { "id": "C2", "name": "מומחה", "size": 15, "available": false }
+]
