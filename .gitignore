@@ -1,0 +1,12 @@
+node_modules/
+test-results/
+dist/
+.superpowers/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.keystore
+*.jks
+.env*
+!*.example
