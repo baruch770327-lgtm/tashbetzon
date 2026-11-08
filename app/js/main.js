@@ -4,8 +4,9 @@ import { createData } from './data.js';
 import { createRouter } from './ui/router.js';
 import * as home from './ui/screens/home.js';
 import * as map from './ui/screens/map.js';
+import * as game from './ui/screens/game.js';
 
-const screens = { home, map };
+const screens = { home, map, game };
 
 async function boot() {
   const data = createData();
