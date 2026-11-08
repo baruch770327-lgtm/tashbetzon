@@ -26,7 +26,7 @@ export function render(ctx, { id, stars, coinsEarned, elapsedMs, newWords }) {
       h('div', { class: 'card stat' }, h('b', { dir: 'ltr' }, `+${coinsEarned}`), h('span', { class: 'muted small' }, '🪙 מטבעות')),
       h('div', { class: 'card stat' }, h('b', { dir: 'ltr' }, formatTime(elapsedMs)), h('span', { class: 'muted small' }, '⏱️ זמן')),
       h('div', { class: 'card stat' }, h('b', {}, newWords), h('span', { class: 'muted small' }, '📖 מילים חדשות'))),
-    hasNext && h('button', { class: 'btn btn-primary', dataset: { action: 'next' }, onClick: () => ctx.router.replace('game', { id: nextId }) }, 'לשלב הבא  ‹'),
+    hasNext && h('button', { class: 'btn btn-primary', dataset: { action: 'next' }, onClick: () => ctx.router.replace('game', { id: nextId }) }, 'לשלב הבא  ←'),
     h('div', { class: 'grid2' },
       h('button', {
         class: 'btn btn-ghost', dataset: { action: 'replay' },

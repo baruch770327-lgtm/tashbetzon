@@ -17,6 +17,7 @@ export function attachGestures(el, { getTransform, setTransform, dims, onTap }) 
   const mid = ([a, b]) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
 
   function down(e) {
+    if (e.target.closest?.('button')) return; // overlay buttons (zoom) handle their own clicks
     try { el.setPointerCapture(e.pointerId); } catch { /* synthetic or already-released pointer */ }
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pts.size === 1) {

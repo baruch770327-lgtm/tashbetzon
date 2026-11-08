@@ -12,10 +12,10 @@ export function createClueBar({ onSpeak, onPrev, onNext, onOpenList }) {
   const meta = h('div', { class: 'clue-meta muted small' });
   const text = h('div', { class: 'clue-text', dir: 'ltr', lang: 'en' });
   const el = h('div', { class: 'clue-bar' },
-    h('button', { class: 'clue-nav', 'aria-label': 'ההגדרה הקודמת', dataset: { action: 'prev-clue' }, onClick: onPrev }, '›'),
+    h('button', { class: 'clue-nav', dir: 'ltr', 'aria-label': 'ההגדרה הקודמת', dataset: { action: 'prev-clue' }, onClick: onPrev }, '›'),
     h('button', { class: 'clue-main', dataset: { action: 'clue-list' }, onClick: onOpenList }, badge, h('div', { class: 'clue-body' }, meta, text)),
     h('button', { class: 'icon-btn', 'aria-label': 'השמעת ההגדרה', dataset: { action: 'speak' }, onClick: onSpeak }, '🔊'),
-    h('button', { class: 'clue-nav', 'aria-label': 'ההגדרה הבאה', dataset: { action: 'next-clue' }, onClick: onNext }, '‹'));
+    h('button', { class: 'clue-nav', dir: 'ltr', 'aria-label': 'ההגדרה הבאה', dataset: { action: 'next-clue' }, onClick: onNext }, '‹'));
   return {
     el,
     set(entry) {
