@@ -230,3 +230,38 @@ h2 { font-size: 22px; font-weight: 700; }
 .clue-num { width: 28px; color: var(--accent); font-weight: 700; text-align: center; flex: none; }
 .clue-en { flex: 1; font-weight: 600; text-align: right; }
 .clue-check { width: 16px; color: var(--good); flex: none; }
+
+/* Complete */
+.stars { display: flex; justify-content: center; gap: 6px; font-size: 52px; line-height: 1; }
+.star { color: #3a4680; }
+.star.on { color: #ffd166; animation: pop .5s both; text-shadow: 0 4px 18px rgba(255, 209, 102, .45); }
+@keyframes pop { 0% { transform: scale(.2); opacity: 0; } 70% { transform: scale(1.2); } 100% { transform: scale(1); opacity: 1; } }
+.complete h1 { margin-top: 10px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.stat { text-align: center; display: flex; flex-direction: column; gap: 2px; padding: 12px 6px; }
+.stat b { font-size: 22px; font-weight: 800; }
+.word-list { padding: 8px 16px; }
+.word-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.word-row:last-child { border-bottom: 0; }
+.word-row .en { font-weight: 700; font-size: 17px; }
+.word-row .he { flex: 1; text-align: center; font-size: 17px; }
+.en-col { display: flex; flex-direction: column; align-items: flex-start; min-width: 110px; }
+.empty { text-align: center; padding: 24px 8px; line-height: 1.6; }
+
+/* Words */
+.search { width: 100%; background: var(--card); border: 0; border-radius: 16px; padding: 14px 16px; color: var(--ink); font: inherit; }
+.search::placeholder { color: var(--dim); }
+
+/* Settings */
+.settings-list { display: flex; flex-direction: column; gap: 4px; padding: 6px 16px; }
+.setting { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.setting:last-child { border-bottom: 0; }
+.setting .card-title { font-size: 16px; }
+.switch { width: 52px; height: 30px; border-radius: 99px; background: #3a4680; position: relative; flex: none; transition: background .2s; }
+.switch i { position: absolute; top: 3px; right: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: transform .2s; }
+.switch[aria-checked="true"] { background: var(--good); }
+.switch[aria-checked="true"] i { transform: translateX(-22px); }
+.danger { color: var(--bad); }
+.danger.armed { background: var(--bad); color: #fff; }
+.center { text-align: center; }
+.about { display: flex; flex-direction: column; gap: 6px; line-height: 1.5; }

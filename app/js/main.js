@@ -5,8 +5,12 @@ import { createRouter } from './ui/router.js';
 import * as home from './ui/screens/home.js';
 import * as map from './ui/screens/map.js';
 import * as game from './ui/screens/game.js';
+import * as complete from './ui/screens/complete.js';
+import * as words from './ui/screens/words.js';
+import * as settings from './ui/screens/settings.js';
+import { speak } from './speech.js';
 
-const screens = { home, map, game };
+const screens = { home, map, game, complete, words, settings };
 
 async function boot() {
   const data = createData();
@@ -21,6 +25,7 @@ async function boot() {
     puzzles,
     data,
     save() { saveProgress(ctx.progress); },
+    speak(text) { return speak(text, { enabled: ctx.progress.settings.sound }); },
   };
   ctx.router = createRouter(document.getElementById('app'), screens, ctx);
   ctx.router.go('home');
