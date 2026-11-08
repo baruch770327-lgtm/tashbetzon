@@ -10,7 +10,7 @@
     ]
   },
   {
-    "id": "A2", "name": "בסיסי", "size": 11, "available": false,
+    "id": "A2", "name": "בסיסי", "size": 11, "available": true, "file": "data/puzzles/a2.json",
     "worlds": [
       { "n": 1, "name": "יום-יום", "emoji": "☀️", "topics": ["daily", "shopping"] },
       { "n": 2, "name": "בבית ובחוץ", "emoji": "🏡", "topics": ["home2", "weather"] },
@@ -20,7 +20,7 @@
     ]
   },
   {
-    "id": "B1", "name": "בינוני", "size": 13, "available": false,
+    "id": "B1", "name": "בינוני", "size": 13, "available": true, "file": "data/puzzles/b1.json",
     "worlds": [
       { "n": 1, "name": "בריאות", "emoji": "🩺", "topics": ["health", "body2"] },
       { "n": 2, "name": "כסף ושירותים", "emoji": "💳", "topics": ["money", "services"] },
@@ -30,7 +30,7 @@
     ]
   },
   {
-    "id": "B2", "name": "בינוני-מתקדם", "size": 13, "available": false,
+    "id": "B2", "name": "בינוני-מתקדם", "size": 13, "available": true, "file": "data/puzzles/b2.json",
     "worlds": [
       { "n": 1, "name": "מדע וטכנולוגיה", "emoji": "🔬", "topics": ["science", "technology"] },
       { "n": 2, "name": "עסקים", "emoji": "💼", "topics": ["business", "work"] },
@@ -40,7 +40,7 @@
     ]
   },
   {
-    "id": "C1", "name": "מתקדם", "size": 15, "available": false,
+    "id": "C1", "name": "מתקדם", "size": 15, "available": true, "file": "data/puzzles/c1.json",
     "worlds": [
       { "n": 1, "name": "רעיונות", "emoji": "💡", "topics": ["abstract", "thinking"] },
       { "n": 2, "name": "כלכלה", "emoji": "📈", "topics": ["economy", "industry"] },
@@ -50,7 +50,7 @@
     ]
   },
   {
-    "id": "C2", "name": "מומחה", "size": 15, "available": false,
+    "id": "C2", "name": "מומחה", "size": 15, "available": true, "file": "data/puzzles/c2.json",
     "worlds": [
       { "n": 1, "name": "דיוק וניואנסים", "emoji": "🎯", "topics": ["nuance", "precision"] },
       { "n": 2, "name": "ספרות וסגנון", "emoji": "📚", "topics": ["literature", "style"] },
