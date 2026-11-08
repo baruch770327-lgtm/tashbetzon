@@ -39,17 +39,30 @@ npm run e2e                                # בדיקה מקצה לקצה + צי
 4. לחץ **התקן**, ואחר כך **פתח**.
 
 **חשוב לדעת:**
-- זו גרסת ניסיון (debug). לפני עדכון לגרסה חדשה ייתכן שתצטרך למחוק את הקודמת, וההתקדמות תימחק. בשלב 2 נוסיף מפתח חתימה קבוע, ואז עדכונים ישמרו את ההתקדמות.
+- מגרסה 0.2.0 האפליקציה חתומה במפתח קבוע. מעבר מגרסת ניסיון (0.1.x) לגרסה 0.2.0 דורש למחוק פעם אחת את הגרסה הישנה. מאז, כל עדכון יותקן מעל הקודם וההתקדמות תישמר.
 - נדרש אנדרואיד 7.0 ומעלה, עם רכיב "Android System WebView" מעודכן (מתעדכן אוטומטית מחנות Play).
 - לאפליקציה **אין הרשאת אינטרנט**. היא לא שולחת שום מידע.
+
+## מפתח החתימה (חשוב!)
+
+כל גרסה של האפליקציה חתומה במפתח קבוע (`tashbetzon-release.jks`) ובסיסמה שלו.
+- **המפתח לא נמצא ב-GitHub**, וגם לא צריך להיות שם.
+- **הבעלים שומר אותו:** את הקובץ ב-iCloud Drive או ב-Google Drive, ואת הסיסמה במנהל הסיסמאות.
+- **כדי לבנות גרסה חדשה:** מעלים את הקובץ ל-Claude ונותנים לו את הסיסמה. אפשרות לעתיד: בנייה ב-GitHub Actions, כשהקובץ והסיסמה שמורים כסודות של GitHub (GitHub Secrets). כך לא צריך להעביר אותם בשיחה בכלל.
+- **אם המפתח אובד:** אפשר ליצור מפתח חדש, אבל אז צריך למחוק ולהתקין מחדש פעם אחת, וההתקדמות תימחק.
+
+טביעת האצבע של התעודה (SHA-256, מידע ציבורי):
+`11:F9:9D:27:EC:43:77:E6:C7:59:D8:0D:D4:B8:6E:D9:9B:AD:73:99:46:10:40:88:47:F9:21:CD:F8:07:CE:71`
 
 ## בניית ה-APK (למפתחים)
 
 ```bash
 # דרוש Android SDK (platform 35, build-tools 35.0.0) ו-Gradle 8.14
 echo "sdk.dir=/opt/android-sdk" > android/local.properties
-gradle -p android assembleDebug
-# הקובץ: android/app/build/outputs/apk/debug/tashbetzon-0.1.0-debug.apk
+gradle -p android assembleDebug                       # גרסת ניסיון
+TASHBETZON_KEYSTORE=/path/tashbetzon-release.jks \
+TASHBETZON_KEYSTORE_PASSWORD='...' gradle -p android assembleRelease   # גרסה חתומה
+# הקבצים: android/app/build/outputs/apk/{debug,release}/
 ```
 
 ## מצאת טעות בתרגום?

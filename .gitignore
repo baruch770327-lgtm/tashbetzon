@@ -10,3 +10,4 @@ android/local.properties
 *.jks
 .env*
 !*.example
+android/keystore.properties

@@ -37,6 +37,7 @@ Approval for one action does not carry over to another. Never merge a pull reque
 - Android SDK command-line tools, `platforms;android-35`, `build-tools;35.0.0`,
   Android Gradle Plugin 8.13.x — approved by the owner (G5, 2026-11-08), build only
 - Rubik font (SIL OFL 1.1), bundled in `app/fonts/`
+- `keytool` (part of the preinstalled JDK) — the release signing key was created with owner approval (G4, 2026-11-08). The key and its password stay with the owner; never commit them, log them, or put them in a PR.
 
 ## 5. Rules
 

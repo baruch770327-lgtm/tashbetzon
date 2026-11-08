@@ -2,6 +2,11 @@ plugins {
     id 'com.android.application'
 }
 
+// Release signing: the keystore never lives in the repository. Pass it only through the environment:
+//   TASHBETZON_KEYSTORE=/path/to/tashbetzon-release.jks  TASHBETZON_KEYSTORE_PASSWORD=...  gradle assembleRelease
+// (optional: TASHBETZON_KEY_ALIAS, default "tashbetzon"; TASHBETZON_KEY_PASSWORD, default = store password)
+def releaseKeystore = System.getenv('TASHBETZON_KEYSTORE')
+
 android {
     namespace 'app.tashbetzon'
     compileSdk 35
@@ -10,8 +15,27 @@ android {
         applicationId 'app.tashbetzon'
         minSdk 24
         targetSdk 35
-        versionCode 2
-        versionName '0.1.1'
+        versionCode 3
+        versionName '0.2.0'
+    }
+
+    signingConfigs {
+        release {
+            if (releaseKeystore) {
+                storeFile file(releaseKeystore)
+                storePassword System.getenv('TASHBETZON_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('TASHBETZON_KEY_ALIAS') ?: 'tashbetzon'
+                keyPassword System.getenv('TASHBETZON_KEY_PASSWORD') ?: System.getenv('TASHBETZON_KEYSTORE_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // Without a keystore the release APK is left unsigned (and cannot be installed) rather than debug-signed.
+            signingConfig releaseKeystore ? signingConfigs.release : null
+        }
     }
 
     compileOptions {
