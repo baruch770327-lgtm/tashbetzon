@@ -59,8 +59,11 @@ try {
   page.on('pageerror', (e) => errors.push(String(e)));
   const shot = (name) => page.screenshot({ path: `${OUT}${name}.png` });
 
+  const bootStart = Date.now();
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
   await page.waitForSelector('[data-screen=home]');
+  const bootMs = Date.now() - bootStart;
+  if (bootMs > 1500) fail(`home took ${bootMs} ms to appear (limit 1500)`);
   await shot('1-home');
   await page.click('[data-tab=map]');
   await page.waitForSelector('[data-screen=map] [data-stage="A1-01"]');
@@ -175,9 +178,50 @@ try {
   if (screenNow !== 'home') fail(`after fast close the screen is ${screenNow}`);
   if (await page.evaluate(() => window.tashbetzonBack())) fail('home is not the root after fast close');
 
+  // Six levels: 40 finished A1 stages open A2 (B1 stays locked); a B1 game in progress survives a reload.
+  const levelsMeta = JSON.parse(readFileSync(new URL('../../app/data/levels.json', import.meta.url), 'utf8'));
+  const available = levelsMeta.filter((l) => l.available).map((l) => l.id);
+  if (available.length !== 6) fail(`expected 6 available levels, got ${available.join(',')}`);
+  const doneStages = (lvl, n) => Object.fromEntries(Array.from({ length: n }, (_, i) => [`${lvl}-${String(i + 1).padStart(2, '0')}`, { stars: 3, bestMs: 1000 }]));
+  const inject = (stages) => page.evaluate((st) => {
+    localStorage.setItem('tashbetzon.progress', JSON.stringify({ version: 1, coins: 100, stages: st, inProgress: {}, words: {},
+      settings: { sound: false, vibrate: false, autoCheck: false, keyboard: 'phone' }, lastPlayed: null }));
+  }, stages);
+  await inject(doneStages('A1', 40));
+  await page.reload();
+  await page.click('[data-tab=map]');
+  await page.click('[data-level=A2]');
+  if (await page.$eval('[data-level=A2]', (b) => b.classList.contains('dim'))) fail('A2 still locked after 40 A1 stages');
+  if (!(await page.$eval('[data-level=B1]', (b) => b.classList.contains('dim')))) fail('B1 unlocked too early');
+  if (await page.$eval('[data-stage="A2-01"]', (b) => b.disabled)) fail('A2-01 not playable');
+  await inject({ ...doneStages('A1', 40), ...doneStages('A2', 40) });
+  await page.reload();
+  await page.click('[data-tab=map]');
+  for (const id of available) {
+    await page.click(`[data-level=${id}]`);
+    await page.waitForTimeout(150);
+    await page.screenshot({ path: `${OUT}map-${id}.png` });
+  }
+  await page.click('[data-level=B1]');
+  await page.click('[data-stage="B1-01"]');
+  await page.waitForSelector('[data-screen=game] [data-cell]');
+  const b1 = loadPuzzle(JSON.parse(readFileSync(new URL('../../app/data/puzzles/b1.json', import.meta.url), 'utf8')).puzzles[0]);
+  const e0 = b1.entries[0];
+  await page.click(`[data-cell="${e0.cells[0][0]},${e0.cells[0][1]}"]`);
+  if ((await page.$eval('.board', (b) => b.dataset.dir)) !== e0.dir) await page.click(`[data-cell="${e0.cells[0][0]},${e0.cells[0][1]}"]`);
+  await page.keyboard.type('אבג');
+  await page.waitForTimeout(700); // autosave
+  await page.reload();
+  await page.click('[data-action=play]');
+  await page.waitForSelector('[data-screen=game] [data-cell]');
+  const kept = await page.textContent(`[data-cell="${e0.cells[2][0]},${e0.cells[2][1]}"] .letter`);
+  if (kept !== 'ג' && kept !== 'ג') fail(`B1 letters were not restored after reload (got "${kept}")`);
+  if (!(await page.textContent('.game-title')).includes('B1')) fail('play did not resume the B1 stage');
+  await page.screenshot({ path: `${OUT}8-game-b1.png` });
+
   if (typed.finals === 0) fail('no final letters were exercised');
   if (errors.length) fail(`console errors: ${errors.join(' | ')}`);
-  console.log(`E2E PASS — ${puzzle.entries.length} entries solved, ${typed.finals} final-letter keys, ${wordRows} words in the book, screenshots in test-results/screens/`);
+  console.log(`E2E PASS — boot ${bootMs} ms, ${puzzle.entries.length} entries solved, ${typed.finals} final-letter keys, ${wordRows} words in the book, screenshots in test-results/screens/`);
 } catch (err) {
   exitCode = 1;
   console.error('E2E FAIL —', err.message);
