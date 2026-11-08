@@ -15,9 +15,18 @@ const POS = ['noun', 'verb', 'adj', 'adv', 'phrase', 'other'];
 const MIN_SIZE = { A1: 500, A2: 550, B1: 550, B2: 500, C1: 450, C2: 450 };
 const MIN_PHRASE_SHARE = 0.08;
 // Words with two common spellings are kept out of the game (spec §2.3 rule 2).
-const FORBIDDEN_SPELLINGS = ['אמא', 'אימא', 'אוירון', 'אווירון', 'חניה', 'חנייה', 'הכל', 'הכול'];
+const FORBIDDEN_SPELLINGS = [
+  'אמא', 'אימא', 'אוירון', 'אווירון', 'חניה', 'חנייה', 'הכל', 'הכול', 'ראיון', 'ריאיון', 'מוזיקה', 'מוסיקה',
+  'משכנתא', 'משכנתה', 'שריפה', 'שרפה', 'כורסה', 'כורסא', 'מזרן', 'מזרון', 'תכף', 'תיכף', 'מיד', 'מייד',
+  'אידאליזם', 'אידיאליזם',
+];
 // Translations that were wrong once; pinned so they do not come back.
-const PINNED = { tiger: 'טיגריס', leopard: 'נמר' };
+const PINNED = {
+  tiger: 'טיגריס', leopard: 'נמר', 'to regret': 'להתחרט', levy: 'היטל', toll: 'אגרה', 'pickup truck': 'טנדר',
+  inlet: 'לשון ים', temper: 'מזג',
+};
+// English clues whose common Hebrew answer differs from ours (same length) must carry a note.
+const NOTE_REQUIRED = ['to need', 'chilly', 'stream', 'well', 'photo', 'mine', 'drill', 'fool', 'prior to'];
 
 test('every available level has a vocabulary file', () => {
   const missing = levels.filter((l) => l.available && !vocabs[l.id]).map((l) => l.id);
@@ -94,4 +103,9 @@ test('pinned translations stay correct', () => {
     assert.ok(e, `${en} exists`);
     assert.equal(e.he, he, en);
   }
+});
+
+test('ambiguous clues carry a note', () => {
+  const missing = NOTE_REQUIRED.filter((en) => !all.find((e) => e.en === en)?.note);
+  assert.deepEqual(missing, []);
 });

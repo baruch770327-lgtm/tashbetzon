@@ -27,7 +27,8 @@ test('puzzles limit two-letter answers per board', () => {
 
 test('higher levels draw only on their own level and the one below', () => {
   const { puzzles } = generateLevel({ level: 'B1', seed: 2, count: 1, quiet: true });
-  const levels = new Set(puzzles.flatMap((p) => p.entries.map((e) => e.level)));
+  // Two-letter answers may come from any lower level (see the two-letter test); longer ones only from the window.
+  const levels = new Set(puzzles.flatMap((p) => p.entries.filter((e) => e.answer.length > 2).map((e) => e.level)));
   assert.deepEqual([...levels].sort(), ['A2', 'B1']);
 });
 
@@ -43,7 +44,18 @@ test('upper levels widen the vocabulary window and use their tuned options', () 
   assert.equal(optionsFor('C1', 15).window, 2);
   assert.equal(optionsFor('B1', 13).minWords, SIZE_OPTIONS[13].minWords);
   const { puzzles } = generateLevel({ level: 'C1', seed: 2, count: 1, quiet: true });
-  const levels = new Set(puzzles.flatMap((p) => p.entries.map((e) => e.level)));
+  const levels = new Set(puzzles.flatMap((p) => p.entries.filter((e) => e.answer.length > 2).map((e) => e.level)));
   assert.ok([...levels].every((l) => ['B1', 'B2', 'C1'].includes(l)), [...levels].join(','));
   assert.ok(puzzles[0].entries.length >= optionsFor('C1', 15).minWords);
+});
+
+import { lexiconFilter } from '../../tools/generator/generate.js';
+
+test('two-letter answers may come from any lower level; longer ones only from the window', () => {
+  const order = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+  const accept = lexiconFilter('C2', order, 2);
+  assert.equal(accept({ level: 'A1', he: 'יד' }), true);
+  assert.equal(accept({ level: 'A1', he: 'כלב' }), false);
+  assert.equal(accept({ level: 'B2', he: 'מדע' }), true);
+  assert.equal(accept({ level: 'C2', he: 'מוסר' }), true);
 });

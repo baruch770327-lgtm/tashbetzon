@@ -42,3 +42,14 @@ test('every clue on a board matches the current vocabulary (run tools/generator/
   }
   assert.deepEqual(stale.slice(0, 10), []);
 });
+
+test('no answer appears on more than 20 of a level\'s 50 boards', () => {
+  const MAX = 20;
+  const over = [];
+  for (const level of levels.filter((l) => l.available)) {
+    const uses = new Map();
+    for (const p of read(`app/${level.file}`).puzzles) for (const e of p.entries) uses.set(e.answer, (uses.get(e.answer) ?? 0) + 1);
+    for (const [a, n] of uses) if (n > MAX) over.push(`${level.id} ${a}×${n}`);
+  }
+  assert.deepEqual(over.slice(0, 12), []);
+});

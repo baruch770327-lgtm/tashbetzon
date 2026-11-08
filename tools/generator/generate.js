@@ -3,7 +3,7 @@
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { computeSlots, slotCells } from '../../app/js/core/grid.js';
-import { wordLengths } from '../../app/js/core/hebrew.js';
+import { wordLengths, answerLetters } from '../../app/js/core/hebrew.js';
 import { mulberry32 } from './rng.js';
 import { buildLexicon } from './lexicon.js';
 import { makeTemplate, runs } from './template.js';
@@ -35,6 +35,7 @@ export function optionsFor(level, size) {
 // Per level: keeps words from repeating across puzzles. Two-letter answers are few (A1 has 54), so they get more room.
 export const MAX_ANSWER_USES = 8;
 export const MAX_SHORT_USES = 12;
+export const MAX_EVER_USES = 20; // hard ceiling per level, even when the cap is relaxed (tests check the shipped files)
 const FALLBACK_KEEP = 0.85;
 const CAPPED_TEMPLATES = 150; // per stage: tries with the reuse cap before relaxing it (fills are slow on 15×15)
 const MAX_TEMPLATES = 2000; // valid templates tried per ladder step
@@ -72,6 +73,21 @@ function buildEntries(rows, lexicon, ctx) {
   });
 }
 
+/**
+ * Which vocabulary entries a level's puzzles may use: the level itself and `window` easier levels,
+ * plus two-letter answers from any easier level (upper levels have very few short words of their own,
+ * and without them the same few short answers fill every board).
+ */
+export function lexiconFilter(level, order, window) {
+  const top = order.indexOf(level);
+  const lowest = Math.max(0, top - window);
+  return (e) => {
+    const i = order.indexOf(e.level);
+    if (i < 0 || i > top) return false;
+    return i >= lowest || answerLetters(e.he).length === 2;
+  };
+}
+
 export function generateLevel({
   level, seed, count, quiet = false, maxUses = MAX_ANSWER_USES, maxShortUses = MAX_SHORT_USES,
 }) {
@@ -83,9 +99,7 @@ export function generateLevel({
   const opts = optionsFor(level, meta.size);
   const vocab = readdirSync(new URL('content/vocab/', ROOT)).flatMap((f) => readJson(`content/vocab/${f}`));
   const vocabById = new Map(vocab.map((e) => [e.id, e]));
-  // A puzzle uses its own level's words and a window of easier levels (see LEVEL_TUNING).
-  const lowest = Math.max(0, order.indexOf(level) - opts.window);
-  const lexicon = buildLexicon(vocab.filter((e) => order.indexOf(e.level) >= lowest), level, order);
+  const lexicon = buildLexicon(vocab.filter(lexiconFilter(level, order, opts.window)), level, order);
   const rng = mulberry32(seed);
   const answerUse = new Map();
   const vocabUse = new Map();
@@ -96,24 +110,26 @@ export function generateLevel({
   for (let stage = 1; stage <= count; stage++) {
     const world = Math.ceil(stage / STAGES_PER_WORLD);
     const topics = new Set(meta.worlds?.[world - 1]?.topics ?? []);
-    const scoreWith = (useReuse) => (answer) => {
+    const scoreWith = (reuseWeight) => (answer) => {
       const entries = lexicon.entriesFor(answer);
       // Tiers: the level's own words always rank above easier levels' words (≥ 3 vs ≤ 2),
       // even after being used; within a tier, unused words, world topics and phrases come first.
       const own = entries.some((e) => e.level === level);
-      const reuse = useReuse ? Math.min(0.5 * (answerUse.get(answer) ?? 0), 2) : 0;
+      const reuse = Math.min(reuseWeight * (answerUse.get(answer) ?? 0), 2);
       return (own ? 5 : 0)
         + (entries.some((e) => topics.has(e.topic)) ? 1 : 0)
         + (entries.some((e) => e.he.includes(' ')) ? 1 : 0)
         - reuse;
     };
-    // Ladder: dense board with the reuse cap → dense board without it → less dense board without it.
-    const capped = (answer) => (answerUse.get(answer) ?? 0) < capFor(answer);
+    // Ladder, relaxing one thing at a time: the reuse cap → 1.5× the cap with a lighter penalty →
+    // the hard ceiling only (still penalized) → a less dense board, ceiling only (last resort).
+    const capped = (factor) => (answer) => (answerUse.get(answer) ?? 0) < Math.min(factor * capFor(answer), MAX_EVER_USES);
+    const underCeiling = (answer) => (answerUse.get(answer) ?? 0) < MAX_EVER_USES;
     const ladder = [
-      // Relaxed steps also drop the reuse penalty: it pushes the handiest short words out of the candidate list.
-      { keep: opts.keep, isAllowed: capped, score: scoreWith(true), tries: CAPPED_TEMPLATES },
-      { keep: opts.keep, isAllowed: () => true, score: scoreWith(false), tries: MAX_TEMPLATES, relaxed: true },
-      { keep: opts.fallbackKeep ?? FALLBACK_KEEP, isAllowed: () => true, score: scoreWith(false), tries: MAX_TEMPLATES, relaxed: true, fallback: true },
+      { keep: opts.keep, isAllowed: capped(1), score: scoreWith(0.5), tries: CAPPED_TEMPLATES },
+      { keep: opts.keep, isAllowed: capped(1.5), score: scoreWith(0.25), tries: MAX_TEMPLATES, relaxed: true },
+      { keep: opts.keep, isAllowed: underCeiling, score: scoreWith(0.25), tries: MAX_TEMPLATES, relaxed: true },
+      { keep: opts.fallbackKeep ?? FALLBACK_KEEP, isAllowed: underCeiling, score: scoreWith(0), tries: MAX_TEMPLATES, relaxed: true, fallback: true },
     ];
     let puzzle = null;
     const why = {};
