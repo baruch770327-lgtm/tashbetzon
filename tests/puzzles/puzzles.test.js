@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { validatePuzzle } from '../../tools/generator/validate.js';
-import { SIZE_OPTIONS } from '../../tools/generator/generate.js';
+import { optionsFor } from '../../tools/generator/generate.js';
 
 const root = new URL('../../', import.meta.url);
 const read = (p) => JSON.parse(readFileSync(new URL(p, root), 'utf8'));
@@ -19,7 +19,7 @@ for (const level of levels.filter((l) => l.available)) {
     assert.equal(puzzles.length, 50);
     assert.equal(new Set(puzzles.map((p) => p.id)).size, 50);
     assert.deepEqual(puzzles.map((p) => p.stage), Array.from({ length: 50 }, (_, i) => i + 1));
-    const minWords = SIZE_OPTIONS[level.size].minWords;
+    const { minWords } = optionsFor(level.id, level.size);
     for (const p of puzzles) {
       assert.equal(p.size, level.size, p.id);
       assert.equal(p.world, Math.ceil(p.stage / 10), p.id);
@@ -29,3 +29,16 @@ for (const level of levels.filter((l) => l.available)) {
     }
   });
 }
+
+test('every clue on a board matches the current vocabulary (run tools/generator/sync.js after clue fixes)', () => {
+  const stale = [];
+  for (const level of levels.filter((l) => l.available)) {
+    for (const p of read(`app/${level.file}`).puzzles) {
+      for (const e of p.entries) {
+        const v = vocabById.get(e.vocabId);
+        if (v && (v.en !== e.en || v.note !== e.note)) stale.push(`${p.id} ${e.vocabId}: "${e.en}" ≠ "${v.en}"`);
+      }
+    }
+  }
+  assert.deepEqual(stale.slice(0, 10), []);
+});

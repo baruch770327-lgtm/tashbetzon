@@ -12,16 +12,33 @@ import { validatePuzzle } from './validate.js';
 
 export const SIZE_OPTIONS = {
   // maxShort: most two-letter answers per board (they are few and would repeat across a level).
-  11: { keep: 0.7, maxLen: 7, minWords: 40, maxShort: 8 },
-  13: { keep: 0.7, maxLen: 7, minWords: 55, maxShort: 10 },
-  15: { keep: 0.7, maxLen: 6, minWords: 70, maxShort: 12 }, // provisional: recalibrated with the C1 lexicon
+  11: { keep: 0.7, maxLen: 7, minWords: 40, maxShort: 10 },
+  13: { keep: 0.7, maxLen: 6, minWords: 55, maxShort: 16 },
+  15: { keep: 0.85, maxLen: 6, minWords: 52, maxShort: 20, fallbackKeep: 1.0 },
 };
+
+// Per-level tuning on top of the board size. window = how many easier levels the puzzle may borrow words from.
+// Upper levels have few short words of their own, so they borrow from two levels below
+// (the level's own words still come first and make up at least 60% of every board).
+const LEVEL_TUNING = {
+  A1: { window: 0 },
+  A2: { window: 1 },
+  B1: { window: 1 },
+  B2: { window: 2, keep: 0.85, minWords: 52 },
+  C1: { window: 2 },
+  C2: { window: 2 },
+};
+
+export function optionsFor(level, size) {
+  return { window: 1, ...SIZE_OPTIONS[size], ...LEVEL_TUNING[level] };
+}
 // Per level: keeps words from repeating across puzzles. Two-letter answers are few (A1 has 54), so they get more room.
 export const MAX_ANSWER_USES = 8;
 export const MAX_SHORT_USES = 12;
 const FALLBACK_KEEP = 0.85;
-const CAPPED_TEMPLATES = 600; // per stage: tries with the reuse cap before relaxing it
-const MAX_TEMPLATES = 2000;
+const CAPPED_TEMPLATES = 150; // per stage: tries with the reuse cap before relaxing it (fills are slow on 15×15)
+const MAX_TEMPLATES = 2000; // valid templates tried per ladder step
+const MAX_RAW_TEMPLATES = 300000; // safety cap on template attempts (invalid ones are cheap)
 const NODE_BUDGET = 4000;
 const STAGES_PER_WORLD = 10;
 
@@ -63,10 +80,12 @@ export function generateLevel({
   const order = levels.map((l) => l.id);
   const meta = levels.find((l) => l.id === level);
   if (!meta) throw new Error(`unknown level ${level}`);
-  const opts = SIZE_OPTIONS[meta.size];
+  const opts = optionsFor(level, meta.size);
   const vocab = readdirSync(new URL('content/vocab/', ROOT)).flatMap((f) => readJson(`content/vocab/${f}`));
   const vocabById = new Map(vocab.map((e) => [e.id, e]));
-  const lexicon = buildLexicon(vocab, level, order);
+  // A puzzle uses its own level's words and a window of easier levels (see LEVEL_TUNING).
+  const lowest = Math.max(0, order.indexOf(level) - opts.window);
+  const lexicon = buildLexicon(vocab.filter((e) => order.indexOf(e.level) >= lowest), level, order);
   const rng = mulberry32(seed);
   const answerUse = new Map();
   const vocabUse = new Map();
@@ -77,34 +96,44 @@ export function generateLevel({
   for (let stage = 1; stage <= count; stage++) {
     const world = Math.ceil(stage / STAGES_PER_WORLD);
     const topics = new Set(meta.worlds?.[world - 1]?.topics ?? []);
-    const score = (answer) => {
+    const scoreWith = (useReuse) => (answer) => {
       const entries = lexicon.entriesFor(answer);
-      return (entries.some((e) => e.level === level) ? 2 : 0)
+      // Tiers: the level's own words always rank above easier levels' words (≥ 3 vs ≤ 2),
+      // even after being used; within a tier, unused words, world topics and phrases come first.
+      const own = entries.some((e) => e.level === level);
+      const reuse = useReuse ? Math.min(0.5 * (answerUse.get(answer) ?? 0), 2) : 0;
+      return (own ? 5 : 0)
         + (entries.some((e) => topics.has(e.topic)) ? 1 : 0)
         + (entries.some((e) => e.he.includes(' ')) ? 1 : 0)
-        - 1.0 * (answerUse.get(answer) ?? 0);
+        - reuse;
     };
     // Ladder: dense board with the reuse cap → dense board without it → less dense board without it.
     const capped = (answer) => (answerUse.get(answer) ?? 0) < capFor(answer);
     const ladder = [
-      { keep: opts.keep, isAllowed: capped, tries: CAPPED_TEMPLATES },
-      { keep: opts.keep, isAllowed: () => true, tries: MAX_TEMPLATES, relaxed: true },
-      { keep: FALLBACK_KEEP, isAllowed: () => true, tries: MAX_TEMPLATES, relaxed: true, fallback: true },
+      // Relaxed steps also drop the reuse penalty: it pushes the handiest short words out of the candidate list.
+      { keep: opts.keep, isAllowed: capped, score: scoreWith(true), tries: CAPPED_TEMPLATES },
+      { keep: opts.keep, isAllowed: () => true, score: scoreWith(false), tries: MAX_TEMPLATES, relaxed: true },
+      { keep: opts.fallbackKeep ?? FALLBACK_KEEP, isAllowed: () => true, score: scoreWith(false), tries: MAX_TEMPLATES, relaxed: true, fallback: true },
     ];
     let puzzle = null;
+    const why = {};
     for (const stepOpts of ladder) {
-      for (let attempt = 0; attempt < stepOpts.tries && !puzzle; attempt++) {
-        stats.templates++;
+      for (let attempt = 0, raw = 0; attempt < stepOpts.tries && raw < MAX_RAW_TEMPLATES && !puzzle; raw++) {
         const blocks = makeTemplate(meta.size, rng, { keep: stepOpts.keep, maxLen: opts.maxLen });
-        if (!blocks || runs(blocks).filter((r) => r.length === 2).length > opts.maxShort) continue;
-        const rows = fillTemplate(blocks, lexicon, rng, { nodeBudget: NODE_BUDGET, score, isAllowed: stepOpts.isAllowed });
-        if (!rows) continue;
+        const reject = (k) => { why[k] = (why[k] ?? 0) + 1; };
+        if (!blocks) { reject('no-template'); continue; }
+        attempt++;
+        stats.templates++;
+        if (runs(blocks).filter((r) => r.length === 2).length > opts.maxShort) { reject('too-many-short'); continue; }
+        const rows = fillTemplate(blocks, lexicon, rng, { nodeBudget: NODE_BUDGET, score: stepOpts.score, isAllowed: stepOpts.isAllowed });
+        if (!rows) { reject('no-fill'); continue; }
         const candidate = {
           id: `${level}-${String(stage).padStart(2, '0')}`, stage, world, size: meta.size, rows,
           entries: buildEntries(rows, lexicon, { level, topics, vocabUse, rng }),
         };
         const errors = validatePuzzle(candidate, vocabById, { level, minWords: opts.minWords, minWhite: 0.6, minLevelShare: 0.6 });
         if (errors.length === 0) puzzle = candidate;
+        for (const e of errors) why[e.split(':')[0]] = (why[e.split(':')[0]] ?? 0) + 1;
       }
       if (puzzle) {
         if (stepOpts.relaxed) stats.relaxed.push(stage);
@@ -113,7 +142,7 @@ export function generateLevel({
         break;
       }
     }
-    if (!puzzle) throw new Error(`could not generate stage ${stage}`);
+    if (!puzzle) throw new Error(`could not generate stage ${stage} (rejections: ${JSON.stringify(why)})`);
     for (const e of puzzle.entries) {
       answerUse.set(e.answer, (answerUse.get(e.answer) ?? 0) + 1);
       vocabUse.set(e.vocabId, (vocabUse.get(e.vocabId) ?? 0) + 1);
