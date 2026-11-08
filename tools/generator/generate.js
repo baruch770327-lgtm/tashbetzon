@@ -6,16 +6,21 @@ import { computeSlots, slotCells } from '../../app/js/core/grid.js';
 import { wordLengths } from '../../app/js/core/hebrew.js';
 import { mulberry32 } from './rng.js';
 import { buildLexicon } from './lexicon.js';
-import { makeTemplate } from './template.js';
+import { makeTemplate, runs } from './template.js';
 import { fillTemplate } from './fill.js';
 import { validatePuzzle } from './validate.js';
 
 export const SIZE_OPTIONS = {
-  11: { keep: 0.7, maxLen: 7, minWords: 40 },
-  13: { keep: 0.7, maxLen: 7, minWords: 55 },
-  15: { keep: 0.7, maxLen: 7, minWords: 70 },
+  // maxShort: most two-letter answers per board (they are few and would repeat across a level).
+  11: { keep: 0.7, maxLen: 7, minWords: 40, maxShort: 8 },
+  13: { keep: 0.7, maxLen: 7, minWords: 55, maxShort: 10 },
+  15: { keep: 0.7, maxLen: 6, minWords: 70, maxShort: 12 }, // provisional: recalibrated with the C1 lexicon
 };
+// Per level: keeps words from repeating across puzzles. Two-letter answers are few (A1 has 54), so they get more room.
+export const MAX_ANSWER_USES = 8;
+export const MAX_SHORT_USES = 12;
 const FALLBACK_KEEP = 0.85;
+const CAPPED_TEMPLATES = 600; // per stage: tries with the reuse cap before relaxing it
 const MAX_TEMPLATES = 2000;
 const NODE_BUDGET = 4000;
 const STAGES_PER_WORLD = 10;
@@ -50,7 +55,10 @@ function buildEntries(rows, lexicon, ctx) {
   });
 }
 
-export function generateLevel({ level, seed, count }) {
+export function generateLevel({
+  level, seed, count, quiet = false, maxUses = MAX_ANSWER_USES, maxShortUses = MAX_SHORT_USES,
+}) {
+  const capFor = (answer) => (answer.length === 2 ? maxShortUses : maxUses);
   const levels = readJson('app/data/levels.json');
   const order = levels.map((l) => l.id);
   const meta = levels.find((l) => l.id === level);
@@ -63,7 +71,7 @@ export function generateLevel({ level, seed, count }) {
   const answerUse = new Map();
   const vocabUse = new Map();
   const puzzles = [];
-  const stats = { entries: 0, white: 0, fallbacks: [], templates: 0 };
+  const stats = { entries: 0, white: 0, fallbacks: [], relaxed: [], templates: 0 };
   const started = Date.now();
 
   for (let stage = 1; stage <= count; stage++) {
@@ -74,15 +82,22 @@ export function generateLevel({ level, seed, count }) {
       return (entries.some((e) => e.level === level) ? 2 : 0)
         + (entries.some((e) => topics.has(e.topic)) ? 1 : 0)
         + (entries.some((e) => e.he.includes(' ')) ? 1 : 0)
-        - 0.5 * (answerUse.get(answer) ?? 0);
+        - 1.0 * (answerUse.get(answer) ?? 0);
     };
+    // Ladder: dense board with the reuse cap → dense board without it → less dense board without it.
+    const capped = (answer) => (answerUse.get(answer) ?? 0) < capFor(answer);
+    const ladder = [
+      { keep: opts.keep, isAllowed: capped, tries: CAPPED_TEMPLATES },
+      { keep: opts.keep, isAllowed: () => true, tries: MAX_TEMPLATES, relaxed: true },
+      { keep: FALLBACK_KEEP, isAllowed: () => true, tries: MAX_TEMPLATES, relaxed: true, fallback: true },
+    ];
     let puzzle = null;
-    for (const keep of [opts.keep, FALLBACK_KEEP]) {
-      for (let attempt = 0; attempt < MAX_TEMPLATES && !puzzle; attempt++) {
+    for (const stepOpts of ladder) {
+      for (let attempt = 0; attempt < stepOpts.tries && !puzzle; attempt++) {
         stats.templates++;
-        const blocks = makeTemplate(meta.size, rng, { keep, maxLen: opts.maxLen });
-        if (!blocks) continue;
-        const rows = fillTemplate(blocks, lexicon, rng, { nodeBudget: NODE_BUDGET, score });
+        const blocks = makeTemplate(meta.size, rng, { keep: stepOpts.keep, maxLen: opts.maxLen });
+        if (!blocks || runs(blocks).filter((r) => r.length === 2).length > opts.maxShort) continue;
+        const rows = fillTemplate(blocks, lexicon, rng, { nodeBudget: NODE_BUDGET, score, isAllowed: stepOpts.isAllowed });
         if (!rows) continue;
         const candidate = {
           id: `${level}-${String(stage).padStart(2, '0')}`, stage, world, size: meta.size, rows,
@@ -92,10 +107,9 @@ export function generateLevel({ level, seed, count }) {
         if (errors.length === 0) puzzle = candidate;
       }
       if (puzzle) {
-        if (keep !== opts.keep) {
-          stats.fallbacks.push(stage);
-          console.warn(`warning: stage ${stage} used the less dense fallback template`);
-        }
+        if (stepOpts.relaxed) stats.relaxed.push(stage);
+        if (stepOpts.fallback) stats.fallbacks.push(stage);
+        if (stepOpts.relaxed && !quiet) console.warn(`warning: stage ${stage} ${stepOpts.fallback ? 'used the less dense fallback template' : 'relaxed the reuse cap'}`);
         break;
       }
     }
@@ -110,10 +124,10 @@ export function generateLevel({ level, seed, count }) {
   }
   const seconds = ((Date.now() - started) / 1000).toFixed(1);
   const summary = `${level}: ${puzzles.length} puzzles, avg entries ${(stats.entries / puzzles.length).toFixed(1)}, `
-    + `avg white ${(100 * stats.white / puzzles.length).toFixed(1)}%, fallbacks ${stats.fallbacks.length}, `
+    + `avg white ${(100 * stats.white / puzzles.length).toFixed(1)}%, fallbacks ${stats.fallbacks.length}, relaxed cap ${stats.relaxed.length}, `
     + `distinct answers ${answerUse.size}, multi-word uses ${puzzles.flatMap((p) => p.entries).filter((e) => e.lengths.length > 1).length}, `
     + `templates tried ${stats.templates}, ${seconds}s`;
-  return { meta, puzzles, summary };
+  return { meta, puzzles, summary, relaxedStages: stats.relaxed };
 }
 
 /** One puzzle per block, one entry per line: readable diffs. */

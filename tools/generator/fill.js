@@ -3,7 +3,7 @@ import { computeSlots, slotCells } from '../../app/js/core/grid.js';
 
 const MAX_CANDIDATES = 40;
 
-export function fillTemplate(blocks, lexicon, rng, { nodeBudget, score }) {
+export function fillTemplate(blocks, lexicon, rng, { nodeBudget, score, isAllowed = () => true }) {
   const rowsTemplate = blocks.map((row) => row.map((b) => (b ? '#' : '.')).join(''));
   const slots = computeSlots(rowsTemplate).map((s) => ({ ...s, cells: slotCells(s) }));
   const grid = blocks.map((row) => row.map(() => ''));
@@ -21,9 +21,9 @@ export function fillTemplate(blocks, lexicon, rng, { nodeBudget, score }) {
     const p = pattern(slot);
     if (p.size === slot.len) {
       const w = slot.cells.map(([r, c]) => grid[r][c]).join('');
-      return lexicon.entriesFor(w).length && !used.has(w) ? [w] : [];
+      return lexicon.entriesFor(w).length && !used.has(w) && isAllowed(w) ? [w] : [];
     }
-    return lexicon.matching(slot.len, p).filter((w) => !used.has(w));
+    return lexicon.matching(slot.len, p).filter((w) => !used.has(w) && isAllowed(w));
   }
 
   function solve() {

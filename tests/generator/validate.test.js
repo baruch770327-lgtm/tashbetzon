@@ -50,3 +50,9 @@ test('a broken grid is reported instead of throwing', () => {
   p.entries[0].answer = 'כלה';
   assert.ok(has(validatePuzzle(p, byId(RING_VOCAB), opts), 'load'));
 });
+
+test('entries from a level above the puzzle level are reported', () => {
+  const higher = RING_VOCAB.map((e, i) => (i === 0 ? { ...e, level: 'B1' } : e));
+  const errors = validatePuzzle(ringPuzzle(), byId(higher), { ...opts, minLevelShare: 0 });
+  assert.ok(has(errors, 'level:'), errors.join('; '));
+});

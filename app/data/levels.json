@@ -9,9 +9,54 @@
       { "n": 5, "name": "אני והעיר", "emoji": "🏙️", "topics": ["body", "clothes", "city", "verbs", "adjectives"] }
     ]
   },
-  { "id": "A2", "name": "בסיסי", "size": 11, "available": false },
-  { "id": "B1", "name": "בינוני", "size": 13, "available": false },
-  { "id": "B2", "name": "בינוני-מתקדם", "size": 13, "available": false },
-  { "id": "C1", "name": "מתקדם", "size": 15, "available": false },
-  { "id": "C2", "name": "מומחה", "size": 15, "available": false }
+  {
+    "id": "A2", "name": "בסיסי", "size": 11, "available": false,
+    "worlds": [
+      { "n": 1, "name": "יום-יום", "emoji": "☀️", "topics": ["daily", "shopping"] },
+      { "n": 2, "name": "בבית ובחוץ", "emoji": "🏡", "topics": ["home2", "weather"] },
+      { "n": 3, "name": "אנשים", "emoji": "👥", "topics": ["people", "feelings"] },
+      { "n": 4, "name": "עבודה ולימודים", "emoji": "🎒", "topics": ["school", "jobs"] },
+      { "n": 5, "name": "טיולים", "emoji": "🧳", "topics": ["travel", "transport"] }
+    ]
+  },
+  {
+    "id": "B1", "name": "בינוני", "size": 13, "available": false,
+    "worlds": [
+      { "n": 1, "name": "בריאות", "emoji": "🩺", "topics": ["health", "body2"] },
+      { "n": 2, "name": "כסף ושירותים", "emoji": "💳", "topics": ["money", "services"] },
+      { "n": 3, "name": "תרבות", "emoji": "🎭", "topics": ["culture", "media"] },
+      { "n": 4, "name": "טבע וסביבה", "emoji": "🌍", "topics": ["environment", "animals2"] },
+      { "n": 5, "name": "חברה", "emoji": "🤝", "topics": ["society", "communication"] }
+    ]
+  },
+  {
+    "id": "B2", "name": "בינוני-מתקדם", "size": 13, "available": false,
+    "worlds": [
+      { "n": 1, "name": "מדע וטכנולוגיה", "emoji": "🔬", "topics": ["science", "technology"] },
+      { "n": 2, "name": "עסקים", "emoji": "💼", "topics": ["business", "work"] },
+      { "n": 3, "name": "חוק וממשל", "emoji": "⚖️", "topics": ["law", "politics"] },
+      { "n": 4, "name": "רגשות ויחסים", "emoji": "💞", "topics": ["emotions", "relationships"] },
+      { "n": 5, "name": "אמנות והיסטוריה", "emoji": "🎨", "topics": ["arts", "history"] }
+    ]
+  },
+  {
+    "id": "C1", "name": "מתקדם", "size": 15, "available": false,
+    "worlds": [
+      { "n": 1, "name": "רעיונות", "emoji": "💡", "topics": ["abstract", "thinking"] },
+      { "n": 2, "name": "כלכלה", "emoji": "📈", "topics": ["economy", "industry"] },
+      { "n": 3, "name": "שפה ותקשורת", "emoji": "🗣️", "topics": ["language", "rhetoric"] },
+      { "n": 4, "name": "גוף ונפש", "emoji": "🧠", "topics": ["psychology", "medicine"] },
+      { "n": 5, "name": "העולם", "emoji": "🌐", "topics": ["global", "geography"] }
+    ]
+  },
+  {
+    "id": "C2", "name": "מומחה", "size": 15, "available": false,
+    "worlds": [
+      { "n": 1, "name": "דיוק וניואנסים", "emoji": "🎯", "topics": ["nuance", "precision"] },
+      { "n": 2, "name": "ספרות וסגנון", "emoji": "📚", "topics": ["literature", "style"] },
+      { "n": 3, "name": "פילוסופיה ואתיקה", "emoji": "🏛️", "topics": ["philosophy", "ethics"] },
+      { "n": 4, "name": "מחקר ואקדמיה", "emoji": "🧬", "topics": ["research", "academia"] },
+      { "n": 5, "name": "ביטויים ושפה רשמית", "emoji": "🪶", "topics": ["idioms", "formal"] }
+    ]
+  }
 ]

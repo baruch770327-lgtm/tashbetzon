@@ -3,7 +3,11 @@ import { loadPuzzle } from '../../app/js/core/puzzle.js';
 import { answerLetters, wordLengths } from '../../app/js/core/hebrew.js';
 import { isSymmetric, isConnected } from './template.js';
 
-export function validatePuzzle(raw, vocabById, { level, minWords, minWhite = 0.6, minLevelShare = 0.6 }) {
+export const LEVEL_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+
+export function validatePuzzle(raw, vocabById, {
+  level, minWords, minWhite = 0.6, minLevelShare = 0.6, levelOrder = LEVEL_ORDER,
+}) {
   const errors = [];
   try {
     loadPuzzle(raw);
@@ -27,6 +31,7 @@ export function validatePuzzle(raw, vocabById, { level, minWords, minWhite = 0.6
     if (!vocab) { errors.push(`vocab: unknown id ${e.vocabId}`); continue; }
     if (answerLetters(vocab.he) !== e.answer || vocab.he !== e.he) errors.push(`vocab: ${e.vocabId} does not match ${e.answer}`);
     if (JSON.stringify(wordLengths(vocab.he)) !== JSON.stringify(e.lengths)) errors.push(`vocab: ${e.vocabId} lengths`);
+    if (levelOrder.indexOf(vocab.level) > levelOrder.indexOf(level)) errors.push(`level: ${e.vocabId} is ${vocab.level}, above ${level}`);
     if (vocab.level === level) atLevel++;
   }
   const share = raw.entries.length ? atLevel / raw.entries.length : 0;

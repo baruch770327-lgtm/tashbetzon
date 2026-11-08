@@ -6,6 +6,16 @@ export const TOPIC_LABELS = {
   basics: 'מילים בסיסיות', numbers: 'מספרים', colors: 'צבעים', family: 'משפחה',
   home: 'בית', objects: 'חפצים', time: 'זמן', food: 'אוכל', animals: 'בעלי חיים',
   nature: 'טבע', body: 'גוף', clothes: 'בגדים', city: 'עיר', verbs: 'פעלים', adjectives: 'תארים',
+  daily: 'שגרה', shopping: 'קניות', home2: 'בית וסביבה', weather: 'מזג אוויר', people: 'אנשים', feelings: 'רגשות',
+  school: 'לימודים', jobs: 'מקצועות', travel: 'טיולים', transport: 'תחבורה',
+  health: 'בריאות', body2: 'הגוף', money: 'כסף', services: 'שירותים', culture: 'תרבות', media: 'תקשורת',
+  environment: 'סביבה', animals2: 'עולם החי', society: 'חברה', communication: 'שיחה',
+  science: 'מדע', technology: 'טכנולוגיה', business: 'עסקים', work: 'עבודה', law: 'חוק', politics: 'פוליטיקה',
+  emotions: 'רגשות', relationships: 'יחסים', arts: 'אמנות', history: 'היסטוריה',
+  abstract: 'מושגים', thinking: 'חשיבה', economy: 'כלכלה', industry: 'תעשייה', language: 'שפה', rhetoric: 'רטוריקה',
+  psychology: 'פסיכולוגיה', medicine: 'רפואה', global: 'עולמי', geography: 'גאוגרפיה',
+  nuance: 'דקויות', precision: 'דיוק', literature: 'ספרות', style: 'סגנון', philosophy: 'פילוסופיה', ethics: 'אתיקה',
+  research: 'מחקר', academia: 'אקדמיה', idioms: 'ניבים', formal: 'שפה רשמית',
 };
 
 export const puzzleIds = (ctx, levelId) => (ctx.puzzles[levelId] ?? []).map((p) => p.id);

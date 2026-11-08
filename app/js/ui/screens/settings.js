@@ -12,6 +12,8 @@ const CONFIRM_MS = 4000;
 
 export function render(ctx) {
   let confirmTimer = null;
+  const switches = [];
+  const syncSwitches = () => switches.forEach(([key, sw]) => sw.setAttribute('aria-checked', String(ctx.progress.settings[key])));
   const resetBtn = h('button', { class: 'btn btn-ghost danger', dataset: { action: 'reset' } }, 'איפוס התקדמות');
   const status = h('p', { class: 'muted small center', role: 'status' });
   resetBtn.addEventListener('click', () => {
@@ -29,6 +31,7 @@ export function render(ctx) {
     confirmTimer = null;
     ctx.progress = defaultProgress();
     ctx.save();
+    syncSwitches();
     resetBtn.textContent = 'איפוס התקדמות';
     resetBtn.classList.remove('armed');
     status.textContent = 'ההתקדמות אופסה. אפשר להתחיל מההתחלה.';
@@ -40,6 +43,7 @@ export function render(ctx) {
       const sw = h('button', {
         class: 'switch', role: 'switch', 'aria-checked': String(ctx.progress.settings[key]), dataset: { setting: key }, 'aria-label': label,
       }, h('i'));
+      switches.push([key, sw]);
       sw.addEventListener('click', () => {
         ctx.progress.settings[key] = !ctx.progress.settings[key];
         sw.setAttribute('aria-checked', String(ctx.progress.settings[key]));

@@ -37,6 +37,7 @@ export function render(ctx, { id }) {
   const world = level.worlds?.[puzzle.world - 1];
   let wrong = new Set();
   let finished = false;
+  let completeTimer = null;
 
   // ---- timer (counts only while the app is visible) ----
   let lastTick = document.hidden ? null : performance.now();
@@ -151,7 +152,7 @@ export function render(ctx, { id }) {
     ctx.progress.lastPlayed = id;
     ctx.save();
     vibrate([40, 60, 40]);
-    setTimeout(() => ctx.router.replace('complete', {
+    completeTimer = setTimeout(() => ctx.router.replace('complete', {
       id, stars: result.stars, coinsEarned: result.coinsEarned, elapsedMs: game.elapsedMs, newWords: result.newWords.length,
     }), 450);
   }
@@ -277,6 +278,7 @@ export function render(ctx, { id }) {
 
   cleanup = () => {
     if (!finished) saveNow();
+    clearTimeout(completeTimer); // left the screen during the win animation: stay where the player went
     clearTimeout(toastTimer);
     resizeObserver.disconnect();
     detachGestures();

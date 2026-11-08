@@ -15,6 +15,37 @@ const level = JSON.parse(readFileSync(new URL('../../app/data/puzzles/a1.json', 
 const puzzle = loadPuzzle(level.puzzles[0]);
 
 const errors = [];
+const typed = { finals: 0 };
+/** Solve A1-01 by tapping cells and keys. lastThenClose: tap ✕ right after the final key. */
+async function solve(page, { onEntry = async () => {}, lastThenClose = false } = {}) {
+  const filled = new Set();
+  const targets = [];
+  for (const entry of puzzle.entries) {
+    for (const [r, c] of entry.cells) if (!targets.some(([rr, cc]) => rr === r && cc === c)) targets.push([r, c]);
+  }
+  const total = targets.length;
+  for (const [n, entry] of puzzle.entries.entries()) {
+    if (entry.cells.every(([r, c]) => filled.has(`${r},${c}`))) continue;
+    const [r0, c0] = entry.cells[0];
+    await page.click(`[data-cell="${r0},${c0}"]`);
+    if ((await page.$eval('.board', (b) => b.dataset.dir)) !== entry.dir) await page.click(`[data-cell="${r0},${c0}"]`);
+    if ((await page.$eval('.board', (b) => b.dataset.dir)) !== entry.dir) fail(`could not select ${entry.num} ${entry.dir}`);
+    for (const [r, c] of entry.cells) {
+      const cell = puzzle.cells[r][c];
+      const key = displayLetter(cell.answer, cell.finalForm);
+      if (key !== cell.answer) typed.finals++;
+      await page.click(`[data-key="${key}"]`);
+      filled.add(`${r},${c}`);
+      if (lastThenClose && filled.size === total) {
+        await page.click('[data-action=close]');
+        return;
+      }
+      if (entry.cells.every(([rr, cc]) => filled.has(`${rr},${cc}`))) break;
+    }
+    await onEntry(n);
+  }
+}
+
 const fail = (msg) => { throw new Error(msg); };
 const server = await startServer(0);
 const browser = await chromium.launch();
@@ -46,7 +77,8 @@ try {
     const mini = document.querySelector('.minimap');
     const m = mini.getBoundingClientRect();
     const hit = document.elementFromPoint(cell.left + cell.width / 2, cell.top + cell.height / 2);
-    const overlaps = !mini.hidden && m.left < cell.right && cell.left < m.right && m.top < cell.bottom && cell.top < m.bottom;
+    const shown = !mini.hidden && getComputedStyle(mini).visibility !== 'hidden';
+    const overlaps = shown && m.left < cell.right && cell.left < m.right && m.top < cell.bottom && cell.top < m.bottom;
     return { overlaps, hitCell: Boolean(hit?.closest('[data-cell="0,0"]')) };
   });
   if (covered.overlaps || !covered.hitCell) fail(`minimap covers cell 0,0 (${JSON.stringify(covered)})`);
@@ -59,22 +91,7 @@ try {
   await page.click('[data-key=next]');
   if ((await badge()) === firstBadge) fail('⏎ key did not move to the next clue');
 
-  const filled = new Set();
-  const typed = { finals: 0 };
-  for (const [n, entry] of puzzle.entries.entries()) {
-    if (entry.cells.every(([r, c]) => filled.has(`${r},${c}`))) continue;
-    const [r0, c0] = entry.cells[0];
-    await page.click(`[data-cell="${r0},${c0}"]`);
-    if ((await page.$eval('.board', (b) => b.dataset.dir)) !== entry.dir) await page.click(`[data-cell="${r0},${c0}"]`);
-    if ((await page.$eval('.board', (b) => b.dataset.dir)) !== entry.dir) fail(`could not select ${entry.num} ${entry.dir}`);
-    for (const [r, c] of entry.cells) {
-      const cell = puzzle.cells[r][c];
-      const key = displayLetter(cell.answer, cell.finalForm);
-      if (key !== cell.answer) typed.finals++;
-      await page.click(`[data-key="${key}"]`);
-      filled.add(`${r},${c}`);
-      if (entry.cells.every(([rr, cc]) => filled.has(`${rr},${cc}`))) break;
-    }
+  await solve(page, { onEntry: async (n) => {
     if (n === 12) {
       await shot('3-game');
       await page.click('[data-action=clues]');
@@ -85,7 +102,7 @@ try {
       await page.waitForSelector('.sheet-backdrop[hidden]', { state: 'attached', timeout: 2000 });
       if (!(await page.$('[data-screen=game]'))) fail('back with clue list open left the game');
     }
-  }
+  } });
   await page.waitForSelector('[data-screen=complete]', { timeout: 5000 });
   const stars = await page.$$eval('.star.on', (s) => s.length);
   if (stars !== 3) fail(`expected 3 stars, got ${stars}`);
@@ -112,6 +129,22 @@ try {
   await shot('6-words');
   await page.click('[data-tab=settings]');
   await shot('7-settings');
+  // After a reset the switches show the defaults again (auto-check off).
+  await page.click('[data-setting=autoCheck]');
+  await page.click('[data-action=reset]');
+  await page.click('[data-action=reset]');
+  const autoCheck = await page.getAttribute('[data-setting=autoCheck]', 'aria-checked');
+  if (autoCheck !== 'false') fail(`auto-check switch shows ${autoCheck} after reset`);
+
+  // Closing the puzzle right after the last letter must not leave the complete screen as the root.
+  await page.click('[data-tab=home]');
+  await page.click('[data-action=play]');
+  await page.waitForSelector('[data-screen=game] [data-cell]');
+  await solve(page, { lastThenClose: true });
+  await page.waitForTimeout(800);
+  const screenNow = await page.getAttribute('[data-screen]', 'data-screen');
+  if (screenNow !== 'home') fail(`after fast close the screen is ${screenNow}`);
+  if (await page.evaluate(() => window.tashbetzonBack())) fail('home is not the root after fast close');
 
   if (typed.finals === 0) fail('no final letters were exercised');
   if (errors.length) fail(`console errors: ${errors.join(' | ')}`);
