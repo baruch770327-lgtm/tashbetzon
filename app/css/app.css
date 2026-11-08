@@ -173,11 +173,13 @@ h2 { font-size: 22px; font-weight: 700; }
   position: absolute; bottom: 8px; left: 8px; z-index: 2; background: #111838ee; border-radius: 999px;
   padding: 6px 12px; font-size: 14px; font-weight: 700;
 }
-.minimap { position: absolute; top: 8px; right: 8px; z-index: 2; background: #0b1028ee; border: 1px solid var(--line); border-radius: 8px; padding: 4px; }
+.minimap.left { right: auto; left: 8px; }
+.minimap { pointer-events: none; position: absolute; top: 8px; right: 8px; z-index: 2; background: #0b1028ee; border: 1px solid var(--line); border-radius: 8px; padding: 4px; }
 .mini-grid { display: grid; grid-template-columns: repeat(var(--n), 6px); gap: 1px; direction: rtl; }
 .mini-grid i { width: 6px; height: 6px; border-radius: 1px; background: #cfd5f5; }
 .mini-grid i.b { background: transparent; }
 .mini-grid i.g { background: var(--good); }
+.mini-grid i.f { background: #8f9bd6; }
 .mini-grid i.w { background: var(--accent); }
 .mini-frame { position: absolute; border: 2px solid #fff; border-radius: 3px; margin: 4px; pointer-events: none; }
 

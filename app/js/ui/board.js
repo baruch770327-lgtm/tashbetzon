@@ -44,10 +44,7 @@ export function createBoard(game) {
     update(wrong) {
       const entry = game.currentEntry();
       const inWord = new Set(entry.cells.map(([r, c]) => `${r},${c}`));
-      const solved = new Set();
-      game.puzzle.entries.forEach((e, i) => {
-        if (game.isEntrySolved(i)) e.cells.forEach(([r, c]) => solved.add(`${r},${c}`));
-      });
+      const solved = game.solvedCells();
       el.dataset.dir = game.cursor.dir;
       for (const it of items) {
         const k = `${it.r},${it.c}`;

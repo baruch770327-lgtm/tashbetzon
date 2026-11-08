@@ -46,7 +46,7 @@
   {"id": "a1-0045", "en": "also", "he": "גם", "level": "A1", "topic": "basics", "pos": "adv", "note": null},
   {"id": "a1-0046", "en": "only", "he": "רק", "level": "A1", "topic": "basics", "pos": "adv", "note": null},
   {"id": "a1-0047", "en": "every", "he": "כל", "level": "A1", "topic": "basics", "pos": "other", "note": null},
-  {"id": "a1-0048", "en": "everything", "he": "הכול", "level": "A1", "topic": "basics", "pos": "other", "note": null},
+  {"id": "a1-0048", "en": "everything", "he": "כל דבר", "level": "A1", "topic": "basics", "pos": "phrase", "note": null},
   {"id": "a1-0049", "en": "nothing", "he": "כלום", "level": "A1", "topic": "basics", "pos": "other", "note": null},
   {"id": "a1-0050", "en": "something", "he": "משהו", "level": "A1", "topic": "basics", "pos": "other", "note": null},
   {"id": "a1-0051", "en": "someone", "he": "מישהו", "level": "A1", "topic": "basics", "pos": "other", "note": null},
@@ -183,7 +183,7 @@
   {"id": "a1-0182", "en": "door", "he": "דלת", "level": "A1", "topic": "home", "pos": "noun", "note": null},
   {"id": "a1-0183", "en": "window", "he": "חלון", "level": "A1", "topic": "home", "pos": "noun", "note": null},
   {"id": "a1-0184", "en": "wall", "he": "קיר", "level": "A1", "topic": "home", "pos": "noun", "note": null},
-  {"id": "a1-0185", "en": "floor", "he": "רצפה", "level": "A1", "topic": "home", "pos": "noun", "note": "(ground)"},
+  {"id": "a1-0185", "en": "floor", "he": "רצפה", "level": "A1", "topic": "home", "pos": "noun", "note": "(of a room)"},
   {"id": "a1-0186", "en": "ceiling", "he": "תקרה", "level": "A1", "topic": "home", "pos": "noun", "note": null},
   {"id": "a1-0187", "en": "roof", "he": "גג", "level": "A1", "topic": "home", "pos": "noun", "note": null},
   {"id": "a1-0188", "en": "kitchen", "he": "מטבח", "level": "A1", "topic": "home", "pos": "noun", "note": null},
@@ -414,7 +414,7 @@
   {"id": "a1-0413", "en": "dolphin", "he": "דולפין", "level": "A1", "topic": "animals", "pos": "noun", "note": null},
   {"id": "a1-0414", "en": "crocodile", "he": "תנין", "level": "A1", "topic": "animals", "pos": "noun", "note": null},
   {"id": "a1-0415", "en": "lion", "he": "אריה", "level": "A1", "topic": "animals", "pos": "noun", "note": null},
-  {"id": "a1-0416", "en": "tiger", "he": "נמר", "level": "A1", "topic": "animals", "pos": "noun", "note": null},
+  {"id": "a1-0416", "en": "tiger", "he": "טיגריס", "level": "A1", "topic": "animals", "pos": "noun", "note": null},
   {"id": "a1-0417", "en": "bear", "he": "דוב", "level": "A1", "topic": "animals", "pos": "noun", "note": null},
   {"id": "a1-0418", "en": "wolf", "he": "זאב", "level": "A1", "topic": "animals", "pos": "noun", "note": null},
   {"id": "a1-0419", "en": "fox", "he": "שועל", "level": "A1", "topic": "animals", "pos": "noun", "note": null},
@@ -735,5 +735,6 @@
   {"id": "a1-0734", "en": "last", "he": "אחרון", "level": "A1", "topic": "adjectives", "pos": "adj", "note": null},
   {"id": "a1-0735", "en": "different", "he": "שונה", "level": "A1", "topic": "adjectives", "pos": "adj", "note": null},
   {"id": "a1-0736", "en": "favorite", "he": "אהוב", "level": "A1", "topic": "adjectives", "pos": "adj", "note": null},
-  {"id": "a1-0737", "en": "correct", "he": "נכון", "level": "A1", "topic": "adjectives", "pos": "adj", "note": null}
+  {"id": "a1-0737", "en": "correct", "he": "נכון", "level": "A1", "topic": "adjectives", "pos": "adj", "note": null},
+  {"id": "a1-0738", "en": "leopard", "he": "נמר", "level": "A1", "topic": "animals", "pos": "noun", "note": null}
 ]

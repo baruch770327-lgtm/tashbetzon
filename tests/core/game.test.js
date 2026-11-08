@@ -187,3 +187,28 @@ test('a saved cursor on a block falls back to the start', () => {
   const g = newGame({ fills: ['....', '.##.', '.##.'], revealed: [], reveals: 0, elapsedMs: 0, cursor: { row: 1, col: 1, dir: 'down' } });
   assert.deepEqual(g.cursor, { row: 0, col: 0, dir: 'across' });
 });
+
+test('a saved game from a regenerated puzzle with the same shape starts fresh', () => {
+  const g = newGame();
+  g.type('ש');
+  g.revealWord();
+  const saved = JSON.parse(JSON.stringify(g.toJSON()));
+  const other = shalomRaw();
+  other.rows = ['שלמה', 'ל##ו', 'מ##ת'];
+  other.entries[0].answer = 'שלמה';
+  other.entries[0].he = 'שלמה';
+  other.entries[2].answer = 'הות';
+  const h = new Game(loadPuzzle(other), saved);
+  assert.equal(h.fills[0][0], '');
+  assert.equal(h.revealed.size, 0);
+  assert.equal(h.reveals, 0);
+  assert.equal(new Game(loadPuzzle(shalomRaw()), saved).reveals, 3, 'same puzzle still restores');
+});
+
+test('solvedCells contains only cells of fully solved entries', () => {
+  const g = newGame();
+  g.type('ש'); g.type('ל');
+  assert.equal(g.solvedCells().size, 0, 'correct letters in an unsolved entry are not revealed as solved');
+  g.type('ו'); g.type('מ');
+  assert.deepEqual([...g.solvedCells()].sort(), ['0,0', '0,1', '0,2', '0,3']);
+});

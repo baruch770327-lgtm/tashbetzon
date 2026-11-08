@@ -16,10 +16,17 @@ import { findPuzzle, levelOf } from '../common.js';
 const SAVE_DELAY_MS = 500;
 const ZOOM_IN_SCALE = 2.2;
 let cleanup = null;
+let backHandler = null;
 
 export function dispose() {
   cleanup?.();
   cleanup = null;
+  backHandler = null;
+}
+
+/** Android back / router back: close the clue list first, if it is open. */
+export function onBack() {
+  return backHandler ? backHandler() : false;
 }
 
 export function render(ctx, { id }) {
@@ -43,10 +50,11 @@ export function render(ctx, { id }) {
 
   // ---- saving ----
   let saveTimer = null;
+  let dirty = false; // only a real change (letters, hints) is saved; just looking at a stage is not
   const saveNow = () => {
     clearTimeout(saveTimer);
     saveTimer = null;
-    if (finished) return;
+    if (finished || !dirty) return;
     tick();
     ctx.progress.inProgress[id] = game.toJSON();
     ctx.progress.lastPlayed = id;
@@ -68,7 +76,7 @@ export function render(ctx, { id }) {
   const dims = () => ({ viewW: viewport.clientWidth, viewH: viewport.clientHeight, contentW: board.contentSize(), contentH: board.contentSize() });
   const applyTransform = () => {
     board.el.style.transform = `translate(${t.x}px, ${t.y}px) scale(${t.scale})`;
-    minimap.update(t, dims());
+    minimap.update(t, dims(), board.entryRect(game.currentEntry()));
     zoomBtn.textContent = t.scale > 1.2 ? '🔍−' : '🔍+';
   };
   const setTransform = (next) => { t = clampTransform(next, dims()); applyTransform(); };
@@ -113,7 +121,7 @@ export function render(ctx, { id }) {
     solvedCount.textContent = `${solved}/${puzzle.entries.length}`;
     barFill.style.width = `${(100 * solved) / puzzle.entries.length}%`;
     coins.textContent = ctx.progress.coins;
-    minimap.update(t, dims());
+    minimap.update(t, dims(), board.entryRect(game.currentEntry()));
   }
 
   /** After the current entry gets solved, jump to the next unsolved one. */
@@ -127,6 +135,7 @@ export function render(ctx, { id }) {
   }
 
   function afterChange() {
+    dirty = true;
     refresh();
     followCursor();
     if (game.isComplete()) finish();
@@ -250,6 +259,12 @@ export function render(ctx, { id }) {
     keyboard.el,
     toast,
     clueList.el);
+
+  backHandler = () => {
+    if (clueList.el.hidden) return false;
+    clueList.close();
+    return true;
+  };
 
   const resizeObserver = new ResizeObserver(layout);
   el.addEventListener('screen:mounted', () => {

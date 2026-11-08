@@ -11,7 +11,7 @@ export function createKeyboard({ onLetter, onErase, onNext }) {
       h('button', { class: 'key wide', dataset: { key: 'erase' }, 'aria-label': 'מחיקה', onClick: onErase }, '⌫')),
     h('div', { class: 'krow' }, [...ROWS[1]].map(key)),
     h('div', { class: 'krow' }, [...ROWS[2]].map(key),
-      h('button', { class: 'key wide', dataset: { key: 'next' }, 'aria-label': 'ההגדרה הבאה', onClick: onNext }, '⏎')));
+      h('button', { class: 'key wide', dataset: { key: 'next' }, 'aria-label': 'ההגדרה הבאה', onClick: () => onNext(1) }, '⏎')));
 
   function onKeyDown(e) {
     if (e.ctrlKey || e.metaKey || e.altKey) return;

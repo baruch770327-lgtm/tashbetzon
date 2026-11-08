@@ -40,8 +40,24 @@ try {
   const before = await scaleOf();
   await page.click('[data-action=zoom]');
   if ((await scaleOf()) === before || !(await scaleOf()).includes('scale(2.2)')) fail('zoom button did not zoom');
+  // The minimap must not cover or swallow taps on the current word's cells (cell 0,0 starts word 1).
+  const covered = await page.evaluate(() => {
+    const cell = document.querySelector('[data-cell="0,0"]').getBoundingClientRect();
+    const mini = document.querySelector('.minimap');
+    const m = mini.getBoundingClientRect();
+    const hit = document.elementFromPoint(cell.left + cell.width / 2, cell.top + cell.height / 2);
+    const overlaps = !mini.hidden && m.left < cell.right && cell.left < m.right && m.top < cell.bottom && cell.top < m.bottom;
+    return { overlaps, hitCell: Boolean(hit?.closest('[data-cell="0,0"]')) };
+  });
+  if (covered.overlaps || !covered.hitCell) fail(`minimap covers cell 0,0 (${JSON.stringify(covered)})`);
   await page.click('[data-action=zoom]');
   if (!(await scaleOf()).includes('scale(1)')) fail('zoom button did not reset');
+
+  // The on-screen ⏎ key moves to the next clue.
+  const badge = () => page.textContent('.clue-badge');
+  const firstBadge = await badge();
+  await page.click('[data-key=next]');
+  if ((await badge()) === firstBadge) fail('⏎ key did not move to the next clue');
 
   const filled = new Set();
   const typed = { finals: 0 };
@@ -64,8 +80,10 @@ try {
       await page.click('[data-action=clues]');
       await page.waitForSelector('.sheet-backdrop:not([hidden])');
       await shot('4-clues');
-      await page.click('.sheet-backdrop', { position: { x: 20, y: 20 } });
-      await page.waitForSelector('.sheet-backdrop[hidden]', { state: 'attached' });
+      // Android back with the clue list open closes the list and stays in the puzzle.
+      if (!(await page.evaluate(() => window.tashbetzonBack()))) fail('back with clue list open exited');
+      await page.waitForSelector('.sheet-backdrop[hidden]', { state: 'attached', timeout: 2000 });
+      if (!(await page.$('[data-screen=game]'))) fail('back with clue list open left the game');
     }
   }
   await page.waitForSelector('[data-screen=complete]', { timeout: 5000 });
@@ -81,6 +99,13 @@ try {
   await page.click('[data-tab=map]');
   if (await page.$eval('[data-stage="A1-02"]', (b) => b.disabled)) fail('A1-02 is still locked');
   if (!(await page.$eval('[data-stage="A1-01"]', (b) => b.classList.contains('done')))) fail('A1-01 not marked done');
+  // Viewing a finished stage without changing it must not hijack "play now".
+  await page.click('[data-stage="A1-01"]');
+  await page.waitForSelector('[data-screen=game]');
+  await page.click('[data-action=close]');
+  await page.click('[data-tab=home]');
+  const card = await page.textContent('.continue');
+  if (!card.includes('שלב 2')) fail(`home points to the wrong stage after viewing A1-01: ${card}`);
   await page.click('[data-tab=words]');
   const wordRows = await page.$$eval('[data-word]', (w) => w.length);
   if (wordRows < puzzle.entries.length - 5) fail(`word book has only ${wordRows} words`);

@@ -1,6 +1,8 @@
 // Small overview of the board with the visible area outlined; shown while zoomed in.
 import { h } from './dom.js';
 
+const MARGIN = 8;
+
 export function createMinimap(game) {
   const { cells } = game.puzzle;
   const n = cells.length;
@@ -16,13 +18,27 @@ export function createMinimap(game) {
 
   return {
     el,
-    update(t, d) {
+    /** entryRect: current word in unscaled content coordinates; the map moves away from it. */
+    update(t, d, entryRect) {
       el.hidden = t.scale < 1.2;
       if (el.hidden) return;
+      if (entryRect) {
+        const e = { left: t.x + entryRect.x * t.scale, top: t.y + entryRect.y * t.scale };
+        e.right = e.left + entryRect.w * t.scale;
+        e.bottom = e.top + entryRect.h * t.scale;
+        const w = el.offsetWidth + MARGIN, hgt = el.offsetHeight + MARGIN;
+        const hits = (x0, x1) => e.left < x1 && x0 < e.right && e.top < hgt && 0 < e.bottom;
+        const rightBusy = hits(d.viewW - w, d.viewW);
+        const leftBusy = hits(0, w);
+        el.classList.toggle('left', rightBusy && !leftBusy);
+        el.style.visibility = rightBusy && leftBusy ? 'hidden' : '';
+      }
       const entry = game.currentEntry();
       const inWord = new Set(entry.cells.map(([r, c]) => `${r},${c}`));
+      const solved = game.solvedCells();
       for (const { dot, r, c } of dots) {
-        dot.className = inWord.has(`${r},${c}`) ? 'w' : game.fills[r][c] === game.puzzle.cells[r][c].answer ? 'g' : '';
+        const k = `${r},${c}`;
+        dot.className = inWord.has(k) ? 'w' : solved.has(k) ? 'g' : game.fills[r][c] ? 'f' : '';
       }
       const cw = d.contentW * t.scale, ch = d.contentH * t.scale;
       frame.style.left = `${(100 * -t.x) / cw}%`;

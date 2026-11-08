@@ -27,6 +27,7 @@ export function createRouter(root, screens, ctx) {
       render();
     },
     back() {
+      if (active?.onBack?.()) return true; // the screen handled it (e.g. closed a sheet)
       if (!history.back()) return false;
       render();
       return true;

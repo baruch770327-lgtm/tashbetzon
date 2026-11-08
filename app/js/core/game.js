@@ -4,6 +4,17 @@ import { REVEAL_WEIGHT } from './scoring.js';
 
 const key = (r, c) => `${r},${c}`;
 
+/** Short fingerprint of a puzzle's answers, so saves from an older version of the puzzle are ignored. */
+export function puzzleFingerprint(puzzle) {
+  const text = `${puzzle.id}|${puzzle.cells.map((row) => row.map((c) => (c.block ? '#' : c.answer)).join('')).join('/')}`;
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(16);
+}
+
 export class Game {
   constructor(puzzle, saved = null) {
     this.puzzle = puzzle;
@@ -22,6 +33,7 @@ export class Game {
 
   #savedMatches(s) {
     const { cells } = this.puzzle;
+    if (s.key !== puzzleFingerprint(this.puzzle)) return false;
     if (!Array.isArray(s.fills) || s.fills.length !== cells.length) return false;
     return s.fills.every((row, r) => typeof row === 'string' && row.length === cells[r].length
       && [...row].every((ch, c) => (cells[r][c].block ? ch === '#' : ch === '.' || BASE_LETTERS.includes(ch))));
@@ -140,12 +152,22 @@ export class Game {
     return this.puzzle.entries[i].cells.every(([r, c]) => this.#isCorrect(r, c));
   }
 
+  /** Keys of cells that belong to a fully solved entry. */
+  solvedCells() {
+    const out = new Set();
+    this.puzzle.entries.forEach((e, i) => {
+      if (this.isEntrySolved(i)) e.cells.forEach(([r, c]) => out.add(key(r, c)));
+    });
+    return out;
+  }
+
   isComplete() {
     return this.puzzle.cells.every((row, r) => row.every((cell, c) => cell.block || this.#isCorrect(r, c)));
   }
 
   toJSON() {
     return {
+      key: puzzleFingerprint(this.puzzle),
       fills: this.fills.map((row, r) => row.map((ch, c) => (this.puzzle.cells[r][c].block ? '#' : ch || '.')).join('')),
       revealed: [...this.revealed],
       reveals: this.reveals,

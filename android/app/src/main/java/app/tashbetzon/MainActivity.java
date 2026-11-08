@@ -54,17 +54,9 @@ public class MainActivity extends Activity {
             }
         });
 
-        if (savedInstanceState != null) {
-            webView.restoreState(savedInstanceState);
-        } else {
-            webView.loadUrl(START_URL);
-        }
-    }
-
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        webView.saveState(outState);
+        // Always start fresh: the game restores its own state from localStorage, and
+        // WebView.restoreState() can leave a blank page after the process was killed.
+        webView.loadUrl(START_URL);
     }
 
     @Override
