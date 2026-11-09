@@ -137,7 +137,7 @@ h2 { font-size: 22px; font-weight: 700; }
 }
 
 /* Game screen: everything fits one phone screen, no page scroll. */
-.screen.game { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; gap: 8px; padding-bottom: calc(var(--safe-bottom) + 8px); }
+.screen.game { height: 100vh; height: var(--app-h, 100dvh); min-height: 0; overflow: hidden; gap: 8px; padding-bottom: calc(var(--safe-bottom) + 8px); }
 .icon-btn { width: 44px; height: 44px; border-radius: 14px; background: var(--card); display: grid; place-items: center; font-size: 18px; flex: none; text-align: center; }
 .game-title { text-align: center; flex: 1; min-width: 0; }
 .game-title .card-title { font-size: 17px; }
@@ -198,7 +198,7 @@ h2 { font-size: 22px; font-weight: 700; }
 .hints.four { grid-template-columns: repeat(4, 1fr); }
 /* The phone keyboard's target: invisible but focusable (16px avoids iOS zoom-on-focus). */
 .native-input {
-  position: fixed; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0;
+  position: fixed; left: 0; top: 0; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0;
   font-size: 16px; caret-color: transparent; background: transparent; color: transparent; pointer-events: none;
 }
 .hint {
@@ -273,3 +273,7 @@ h2 { font-size: 22px; font-weight: 700; }
 .danger.armed { background: var(--bad); color: #fff; }
 .center { text-align: center; }
 .about { display: flex; flex-direction: column; gap: 6px; line-height: 1.5; }
+
+/* iPhone install hint */
+.install-hint { border: 1px solid #3a4680; background: linear-gradient(135deg, #22306a, #1d2752); }
+.install-hint p { margin-top: 6px; line-height: 1.6; }

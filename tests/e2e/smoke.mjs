@@ -230,6 +230,41 @@ try {
   if (!(await page.textContent('.game-title')).includes('B1')) fail('play did not resume the B1 stage');
   await page.screenshot({ path: `${OUT}8-game-b1.png` });
 
+  // Web (iPhone) version: after one visit the game opens with no network at all.
+  const offlineCtx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const offline = await offlineCtx.newPage();
+  offline.on('pageerror', (e) => errors.push(`offline: ${e}`));
+  await offline.goto(`http://127.0.0.1:${server.address().port}/?sw`);
+  await offline.waitForSelector('[data-screen=home]');
+  const cached = async () => offline.evaluate(async () => {
+    const reg = await navigator.serviceWorker?.getRegistration();
+    const keys = await caches.keys();
+    return Boolean(reg?.active) && keys.some((k) => k.startsWith('tashbetzon-'));
+  });
+  let ready = false;
+  for (let i = 0; i < 60 && !ready; i++) { ready = await cached(); if (!ready) await offline.waitForTimeout(250); }
+  if (!ready) fail('the offline cache (service worker) was not installed');
+  await offlineCtx.setOffline(true);
+  await offline.reload();
+  await offline.waitForSelector('[data-screen=home]', { timeout: 5000 });
+  await offline.click('[data-action=play]');
+  await offline.waitForSelector('[data-screen=game] [data-cell]', { timeout: 5000 });
+  await offlineCtx.close();
+
+  // On an iPhone (Safari, not yet on the home screen) the home screen explains how to install.
+  const iphone = await browser.newContext({
+    viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
+  });
+  const ip = await iphone.newPage();
+  await ip.goto(`http://127.0.0.1:${server.address().port}/`);
+  await ip.waitForSelector('[data-screen=home]');
+  const hint = await ip.$('[data-install-hint]');
+  if (!hint || !(await hint.textContent()).includes('הוספה למסך הבית')) fail('no iPhone install hint on the home screen');
+  await ip.screenshot({ path: `${OUT}9-iphone-home.png` });
+  await iphone.close();
+  if (await page.$('[data-install-hint]')) fail('install hint shown outside iPhone Safari');
+
   if (typed.finals === 0) fail('no final letters were exercised');
   if (errors.length) fail(`console errors: ${errors.join(' | ')}`);
   console.log(`E2E PASS — boot ${bootMs} ms, ${puzzle.entries.length} entries solved, ${typed.finals} final-letter keys, ${wordRows} words in the book, screenshots in test-results/screens/`);

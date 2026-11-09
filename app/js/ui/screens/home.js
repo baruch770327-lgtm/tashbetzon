@@ -1,5 +1,6 @@
 // Home: continue card, play button, shortcuts.
 import { h } from '../dom.js';
+import { showInstallHint } from '../../platform.js';
 import {
   nextStageId, findPuzzle, levelOf, levelDone, puzzleIds, coinPill, totalStars, tabBar,
 } from '../common.js';
@@ -20,6 +21,10 @@ export function render(ctx) {
       h('div', { class: 'hero-logo', 'aria-hidden': 'true' }, '🧩'),
       h('h1', {}, 'תשבצון'),
       h('p', { class: 'muted' }, 'לומדים אנגלית דרך תשבצים')),
+    showInstallHint() && h('div', { class: 'card install-hint', dataset: { installHint: '' } },
+      h('div', { class: 'card-title' }, '📲 להתקנה באייפון'),
+      h('p', { class: 'muted small' }, 'לחץ למטה על כפתור השיתוף ', h('b', {}, '⬆︎'), ' ואז על ', h('b', {}, '"הוספה למסך הבית"'),
+        '. המשחק יופיע עם סמל משלו, ייפתח במסך מלא ויעבוד גם בלי אינטרנט.')),
     puzzle && h('button', { class: 'card continue', onClick: () => ctx.router.go('game', { id }) },
       h('div', { class: 'row between' },
         h('div', {},

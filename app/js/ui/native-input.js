@@ -2,6 +2,7 @@
 // Its value is kept at a small sentinel so Backspace always has something to delete;
 // every change is turned into "erase N, add these letters" by diffing old vs new value.
 import { h } from './dom.js';
+import { visibleHeight } from '../platform.js';
 
 export const SENTINEL = '  ';
 
@@ -53,13 +54,14 @@ export function createNativeInput({ onLetter, onErase, onEraseAt, onNext, onLati
   // Whether the phone keyboard is showing. Focus alone is not enough: Android Back hides the keyboard
   // but leaves the field focused. The app grows back to full height when that happens.
   let shown = false;
-  let fullHeight = window.innerHeight;
+  let fullHeight = visibleHeight();
   const onResize = () => {
-    const h = window.innerHeight;
+    const h = visibleHeight();
     if (h >= fullHeight * 0.95) shown = false; // back to full height: keyboard gone
     fullHeight = Math.max(fullHeight, h);
   };
   window.addEventListener('resize', onResize);
+  globalThis.visualViewport?.addEventListener('resize', onResize);
   const tracker = createInputTracker({ onLetter, onErase, onEraseAt, onNext, onLatin });
 
   const reset = () => {
@@ -101,6 +103,9 @@ export function createNativeInput({ onLetter, onErase, onEraseAt, onNext, onLati
       try { globalThis.AndroidBridge?.hideKeyboard?.(); } catch { /* older app shell */ }
     },
     isOpen: () => shown && document.activeElement === el,
-    detach: () => window.removeEventListener('resize', onResize),
+    detach: () => {
+      window.removeEventListener('resize', onResize);
+      globalThis.visualViewport?.removeEventListener('resize', onResize);
+    },
   };
 }

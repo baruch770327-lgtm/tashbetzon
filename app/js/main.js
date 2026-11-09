@@ -9,10 +9,13 @@ import * as complete from './ui/screens/complete.js';
 import * as words from './ui/screens/words.js';
 import * as settings from './ui/screens/settings.js';
 import { speak } from './speech.js';
+import { registerOffline, trackVisibleHeight } from './platform.js';
 
 const screens = { home, map, game, complete, words, settings };
 
 async function boot() {
+  trackVisibleHeight();
+  registerOffline();
   const data = createData();
   const levels = await data.loadLevels();
   const puzzles = {};

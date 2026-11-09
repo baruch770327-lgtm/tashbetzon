@@ -55,6 +55,7 @@ npm test                                   # all unit, content and puzzle checks
 npm run generate -- --level A1 --seed 1    # regenerate a level's puzzles
 npm run serve                              # play in a browser at http://localhost:8080
 npm run e2e                                # end-to-end test + screenshots
+npm run pwa                                # refresh the offline file list in app/sw.js (after changing app/)
 ```
 
 Run `npm test` before every commit and report the result.
